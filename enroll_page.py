@@ -1,17 +1,19 @@
-from PyQt6.QtWidgets import QWidget, QMessageBox, QPushButton, QLineEdit, QLabel, QFrame
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
+from PyQt6.QtCore import Qt, QTimer
 import psycopg2
 from face_enroll_thread import FaceEnrollWorker
 from finger_enroll_thread import FingerEnrollWorker
-
+from marquee_label import FooterMarquee
 
 class EnrollPage:
-    def __init__(self, page_enroll: QWidget):
+    def __init__(self, page_enroll: QWidget, main_window=None):
         self.page = page_enroll
         self.selected_mode = None
         self.worker = None
         self._hidden_input = None
         self._hidden_input_prev_policy = None
+        self.main = main_window
+        self.footer_marquee = None
 
         # --- Find widgets from .ui ---
         self.btnFace = self.page.findChild(QPushButton, "btnFace")
@@ -19,6 +21,7 @@ class EnrollPage:
         self.btnSubmit = self.page.findChild(QPushButton, "btnSubmit")
         self.txtStudentNo = self.page.findChild(QLineEdit, "txtStudentNo")
         self.lblStatus = self.page.findChild(QLabel, "lblStatus")
+        self.footerLabel_2 = self.page.findChild(QLabel, "footerLabel_2")
 
         # --- Initial State ---
         if self.txtStudentNo:
@@ -28,6 +31,8 @@ class EnrollPage:
         if self.btnSubmit:
             self.btnSubmit.setEnabled(False)
 
+        self.init_footer_marquee()
+
         # --- Connect buttons ---
         if self.btnFace:
             self.btnFace.clicked.connect(lambda: self.select_mode("face"))
@@ -36,10 +41,22 @@ class EnrollPage:
         if self.btnSubmit:
             self.btnSubmit.clicked.connect(self.start_enrollment)
 
-        print("[DEBUG] EnrollPage initialized. txtStudentNo is now read-only until mode selected.")
+        self.set_status("Select enrollment type to start.", "orange")
 
     # -----------------------------------------------------------------
+    def set_status(self, text: str, color: str):
+        if self.lblStatus:
+            self.lblStatus.setText(text)
+            self.lblStatus.setStyleSheet(
+                f"color: white; background-color: {color}; font-weight: bold; padding: 4px; border-radius: 4px;"
+            )
 
+    def init_footer_marquee(self):
+        self.footer_marquee = FooterMarquee(
+            self.footerLabel_2, speed=35, padding=40, left_to_right=True
+        )
+
+    # -----------------------------------------------------------------
     def _locate_hidden_input(self):
         if self._hidden_input:
             return self._hidden_input
@@ -68,7 +85,6 @@ class EnrollPage:
         self._hidden_input_prev_policy = None
 
     # -----------------------------------------------------------------
-
     def select_mode(self, mode):
         self.selected_mode = mode
         self._disable_hidden_input_focus()
@@ -77,60 +93,81 @@ class EnrollPage:
             self.txtStudentNo.setReadOnly(False)
             self.txtStudentNo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             self.txtStudentNo.setFocus(Qt.FocusReason.MouseFocusReason)
-            print(f"[DEBUG] Enrollment mode selected: {mode}. txtStudentNo is now editable.")
 
         if self.btnSubmit:
             self.btnSubmit.setEnabled(True)
 
-        if self.lblStatus:
-            self.lblStatus.setText(
-                "Facial enrollment selected." if mode == "face"
-                else "Fingerprint enrollment selected."
+        self.set_status(
+            "Facial enrollment selected." if mode == "face" else "Fingerprint enrollment selected.",
+            "orange"
+        )
+    
+    def update_camera_feed(self, frame):
+        from PyQt6.QtGui import QImage, QPixmap
+        h, w, ch = frame.shape
+        bytes_per_line = ch * w
+        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_BGR888)
+        camera_label = self.page.findChild(QLabel, "cameraFeed_2")
+        if camera_label:
+            camera_label.setPixmap(
+                QPixmap.fromImage(qimg).scaled(
+                    camera_label.width(),
+                    camera_label.height(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
             )
 
     # -----------------------------------------------------------------
-
     def start_enrollment(self):
         student_no = self.txtStudentNo.text().strip() if self.txtStudentNo else ""
 
         if not student_no:
-            QMessageBox.warning(self.page, "Input Missing", "Please enter student number.")
+            self.set_status("Please enter student number.", "red")
             return
 
         if not self.student_exists(student_no):
-            QMessageBox.warning(self.page, "Not Found", f"Student {student_no} not found in database.")
+            self.set_status(f"Student {student_no} not found in database.", "red")
             return
 
-        # --- Check if already enrolled for selected mode ---
         if self.selected_mode == "face" and self.is_already_enrolled(student_no, "face"):
-            QMessageBox.warning(self.page, "Already Enrolled", f"Student {student_no} already has a face record.")
+            self.set_status(f"Student {student_no} already has a face record.", "red")
             return
 
         if self.selected_mode == "finger" and self.is_already_enrolled(student_no, "finger"):
-            QMessageBox.warning(self.page, "Already Enrolled", f"Student {student_no} already has a fingerprint record.")
+            self.set_status(f"Student {student_no} already has a fingerprint record.", "red")
             return
 
         self.set_inputs_enabled(False)
 
+        wnd = self.page.window()
+
+        # --- Stop any existing enrollment thread safely ---
+        if self.worker and self.worker.isRunning():
+            self.worker.stop()
+            self.worker.wait()
+            self.worker = None
+
         if self.selected_mode == "face":
-            if self.lblStatus:
-                self.lblStatus.setText("Starting facial enrollment...")
-            self.worker = FaceEnrollWorker(student_no)
+            self.set_status("Starting facial enrollment...", "orange")
+            camera_label = self.page.findChild(QLabel, "cameraFeed_2")
+            self.worker = FaceEnrollWorker(student_no, label_widget=camera_label)
+            self.worker.frameReady.connect(self.update_camera_feed)
             self.worker.finished.connect(self.on_enroll_done)
             self.worker.start()
 
         elif self.selected_mode == "finger":
-            if self.lblStatus:
-                self.lblStatus.setText("Starting fingerprint enrollment...")
+            if hasattr(wnd, "fingerprint_thread"):
+                wnd.fingerprint_thread.deactivate()
+            self.set_status("Starting fingerprint enrollment...", "orange")
             self.worker = FingerEnrollWorker(student_no)
             self.worker.finished.connect(self.on_enroll_done)
             self.worker.start()
 
         else:
-            QMessageBox.warning(self.page, "No Mode", "Please select an enrollment type.")
+            self.set_status("Please select an enrollment type.", "red")
 
     # -----------------------------------------------------------------
-
     def set_inputs_enabled(self, enabled: bool):
         if self.btnFace:
             self.btnFace.setEnabled(enabled)
@@ -138,7 +175,6 @@ class EnrollPage:
             self.btnFinger.setEnabled(enabled)
         if self.txtStudentNo:
             self.txtStudentNo.setEnabled(enabled)
-            # Keep read-only state when re-enabled after enrollment
             if enabled and not self.selected_mode:
                 self.txtStudentNo.setReadOnly(True)
         if self.btnSubmit:
@@ -147,7 +183,6 @@ class EnrollPage:
             self._restore_hidden_input_focus()
 
     # -----------------------------------------------------------------
-
     def student_exists(self, student_no):
         conn = psycopg2.connect(
             dbname="citadel_db",
@@ -172,7 +207,6 @@ class EnrollPage:
             port=5432
         )
         cur = conn.cursor()
-
         if mode == "face":
             cur.execute("SELECT facial_recognition_data FROM students WHERE student_no = %s", (student_no,))
             result = cur.fetchone()
@@ -182,23 +216,16 @@ class EnrollPage:
             exists = cur.fetchone() is not None
         else:
             exists = False
-
         cur.close()
         conn.close()
         return exists
 
     # -----------------------------------------------------------------
-
     def on_enroll_done(self, success, msg):
-        if self.lblStatus:
-            self.lblStatus.setText(msg)
+        color = "green" if success else "red"
+        self.set_status(msg, color)
 
-        if success:
-            QMessageBox.information(self.page, "Success", msg)
-        else:
-            QMessageBox.critical(self.page, "Error", msg)
-
-        # Reset to initial state
+        # Reset UI
         self.selected_mode = None
         if self.txtStudentNo:
             self.txtStudentNo.clear()
@@ -206,4 +233,39 @@ class EnrollPage:
             self.txtStudentNo.setPlaceholderText("Select enrollment type first...")
 
         self.set_inputs_enabled(True)
-        print("[DEBUG] Enrollment finished, txtStudentNo set back to read-only.")
+
+        wnd = self.page.window()
+
+        # --- Reload face gallery + reset models ---
+        if success and hasattr(wnd, "verification_handler"):
+            try:
+                from face_recognition import load_gallery, reset_models
+                reset_models()  # ensures models reinitialized
+                new_gallery = load_gallery(force_reload=True)
+                wnd.verification_handler.gallery = new_gallery
+                print(f"[EnrollPage] Face models and gallery reloaded ({len(new_gallery)} records).")
+            except Exception as e:
+                print(f"[EnrollPage] Failed to reload face models/gallery: {e}")
+
+        # --- Reactivate fingerprint reader ---
+        def reset_reader():
+            if not hasattr(wnd, "fingerprint_thread"):
+                return
+            with wnd.fingerprint_thread._lock:
+                if wnd.fingerprint_thread.reader:
+                    try:
+                        wnd.fingerprint_thread.reader.close()
+                    except Exception:
+                        pass
+                wnd.fingerprint_thread.reader = None
+            wnd.fingerprint_thread.activate()
+
+        QTimer.singleShot(100, reset_reader)
+
+    # -----------------------------------------------------------------
+    def stop_enrollment(self):
+        """Stop any running enrollment thread safely."""
+        if self.worker and self.worker.isRunning():
+            self.worker.stop()
+            self.worker.wait()
+            self.worker = None

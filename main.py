@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLineEdit, QLabel, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QTimer, QDateTime
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QPixmap
 
 from main_ui import Ui_Citadel
 from face_recognition import load_gallery
@@ -44,15 +44,14 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._suppress_feed = False
         self.last_logged = {}
         self.footer_marquee = FooterMarquee(self.footerLabel, speed=35, padding=40, left_to_right=True)
-        self.footer_marquee = FooterMarquee(self.footerLabel_2, speed=35, padding=40, left_to_right=True)
 
         # Tabs
         self.actionMain = self.menuBar.addAction("Main")
-        self.actionMain.triggered.connect(lambda: self.stackedWidget.setCurrentWidget(self.page_main))
+        self.actionMain.triggered.connect(lambda: self.show_page("main"))
 
         self.enroll_logic = EnrollPage(self.page_enroll)
         self.actionEnroll = self.menuBar.addAction("Enroll")
-        self.actionEnroll.triggered.connect(lambda: self.stackedWidget.setCurrentWidget(self.page_enroll))
+        self.actionEnroll.triggered.connect(lambda: self.show_page("enroll"))
 
         self.actionSettings = self.menuBar.addAction("Settings")
         self.actionSettings.triggered.connect(lambda: self.stackedWidget.setCurrentWidget(self.page_settings))
@@ -107,12 +106,48 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.overlay_image.setGraphicsEffect(opacity_effect)
         self.overlay_image.show()
 
+    # ------------------ Page Switching ------------------
+    def show_page(self, page_name):
+        # Stop any running enrollment to release camera
+        if hasattr(self, "enroll_logic") and self.enroll_logic:
+            self.enroll_logic.stop_enrollment()
+
+        if page_name == "main":
+            self.stackedWidget.setCurrentWidget(self.page_main)
+
+            if hasattr(self, "fingerprint_thread"):
+                self.fingerprint_thread.activate()
+
+            try:
+                from face_recognition import reset_models, load_gallery
+                reset_models()
+                self.gallery = load_gallery(force_reload=True)
+
+                # Stop previous camera thread completely
+                self.camera_handler.stop_camera()
+                self.camera_handler._display_bgr = None
+                self.camera_handler._display_info = None
+
+                # Reset current QR so face verification triggers correctly on next scan
+                self.current_qr = None  
+
+                print("[DEBUG] Camera restarted and gallery reloaded after enrollment.")
+            except Exception as e:
+                print(f"[WARN] Failed to reinitialize face recognition: {e}")
+
+        elif page_name == "enroll":
+            self.stackedWidget.setCurrentWidget(self.page_enroll)
+
+        else:
+            # For settings or other pages
+            self.stackedWidget.setCurrentWidget(self.pages.get(page_name, self.page_main))
+
     def on_face_result(self, ok, info, box):
         if self._suppress_feed or not self.verification_active:
             return
         if ok:
             self.face_timeout_timer.stop()
-            self.verification_handler.qr_verified_success(self.current_qr, info)
+            self.qr_verified_success(self.current_qr, info)
             self.current_qr = None
             QTimer.singleShot(2000, self.reset_verification_state)
         else:
@@ -126,9 +161,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
             name, program, year, section = student
             self.update_ui_verified(student_no, name, program, year, section, "Access Granted")
             self.set_status("Access Granted", "#77EE77")
-            log_to_entry_logs(student_no, self.main.last_logged, self.main.set_status, method_id=1)
+            log_to_entry_logs(student_no, self.last_logged, self.set_status, method_id=1)
             notify_parent_task(student_no)
-            self.camera_handler.stop_camera()
             self.inactivity_timer.start()
         else:
             self.set_status("Access Denied", "#FF6666")
@@ -142,24 +176,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.idLabel.setText(student_no)
         self.entryLabel.setText(QDateTime.currentDateTime().toString("dddd | MMM d, yyyy | hh:mm AP"))
         self.statusLabel.setText(status)
-
-    def display_student_photo(self, photo_bytes, hold_ms=2000):
-        if not photo_bytes:
-            self.camera_handler.clear_camera_feed()
-            return
-        image = QImage.fromData(photo_bytes)
-        if image.isNull():
-            self.camera_handler.clear_camera_feed()
-            return
-        pixmap = QPixmap.fromImage(image).scaled(self.cameraFeed.width(), self.cameraFeed.height(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        self._suppress_feed = True
-        self.fingerprint_thread.deactivate()
-        self.cameraFeed.setPixmap(pixmap)
-        QTimer.singleShot(hold_ms, self.resume_after_photo)
-
-    def resume_after_photo(self):
-        self._suppress_feed = False
-        self.fingerprint_thread.activate()
     
     def set_status(self, text, color):
         self.statusLabel.setText(text)
@@ -172,7 +188,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         """)
     
     def resizeEvent(self, event):
-        self.overlay_image.move(self.width() - 200, self.height() - 300)
+        self.overlay_image.move(self.width() - 180, self.height() - 250)
         super().resizeEvent(event)
 
     # -------------------- Misc --------------------

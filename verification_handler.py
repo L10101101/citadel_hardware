@@ -29,7 +29,6 @@ class VerificationHandler:
                 self.main.update_ui_verified(student_no, name, program, year, section, "Access Granted")
                 notify_parent_task(student_no)
 
-        self.main.camera_handler.stop_camera()
         QTimer.singleShot(2000, self.main.reset_verification_state)
 
     # -------------------- QR --------------------
@@ -56,7 +55,7 @@ class VerificationHandler:
 
         student = lookup_student(qr_value)
         if student:
-            name, program, year, section = student  # photo removed
+            name, program, year, section = student
             self.main.update_ui_verified(qr_value, name, program, year, section, "QR Verified")
             self.main.camera_handler.start_camera()
             self.main.face_timeout_timer.start(10000)
@@ -69,5 +68,4 @@ class VerificationHandler:
             self.main.reset_verification_state()
             self.main.reset_info()
             self.main.set_status("Try Again", "#FFBF66")
-            self.main.camera_handler.stop_camera()
             self.main.hiddenInput.setEnabled(True)
