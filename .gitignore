@@ -1,0 +1,6 @@
+.env
+/database
+/backup
+/__pycache__
+/debug_faces
+/venv

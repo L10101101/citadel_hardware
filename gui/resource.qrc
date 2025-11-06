@@ -1,0 +1,25 @@
+<RCC>
+  <qresource prefix="/icons">
+    <file>assets/UCC_Logo.png</file>
+  </qresource>
+  <qresource prefix="/fonts">
+    <file>fonts/Poppins-Black.ttf</file>
+    <file>fonts/Poppins-BlackItalic.ttf</file>
+    <file>fonts/Poppins-Bold.ttf</file>
+    <file>fonts/Poppins-BoldItalic.ttf</file>
+    <file>fonts/Poppins-ExtraBold.ttf</file>
+    <file>fonts/Poppins-ExtraBoldItalic.ttf</file>
+    <file>fonts/Poppins-ExtraLight.ttf</file>
+    <file>fonts/Poppins-ExtraLightItalic.ttf</file>
+    <file>fonts/Poppins-Italic.ttf</file>
+    <file>fonts/Poppins-Light.ttf</file>
+    <file>fonts/Poppins-LightItalic.ttf</file>
+    <file>fonts/Poppins-Medium.ttf</file>
+    <file>fonts/Poppins-MediumItalic.ttf</file>
+    <file>fonts/Poppins-Regular.ttf</file>
+    <file>fonts/Poppins-SemiBold.ttf</file>
+    <file>fonts/Poppins-SemiBoldItalic.ttf</file>
+    <file>fonts/Poppins-Thin.ttf</file>
+    <file>fonts/Poppins-ThinItalic.ttf</file>
+  </qresource>
+</RCC>
