@@ -162,7 +162,7 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
         return
 
     try:
-        conn, source = get_connection()
+        conn, _ = get_connection()
         cur = conn.cursor()
         cur.execute("""
             SELECT fullname, guardian_email

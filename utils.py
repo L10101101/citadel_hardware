@@ -3,7 +3,7 @@ from datetime import datetime
 from db_utils import get_connection
 
 def lookup_student(student_no):
-    conn, source = get_connection()  # ✅ unpack the tuple
+    conn, _ = get_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT s.fullname,
@@ -30,10 +30,9 @@ def lookup_student(student_no):
 def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
     try:
         now = datetime.now()
-        conn, source = get_connection()
+        conn, _ = get_connection()
         cur = conn.cursor()
 
-        # Ensure timezone for the session
         cur.execute("SET TIME ZONE 'Asia/Manila'")
 
         cur.execute("""
@@ -43,14 +42,22 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
             ORDER BY timestamps DESC
             LIMIT 1
         """, (student_no,))
-        row = cur.fetchone()
-        last_ts = row[0] if row else None
+        row_entry = cur.fetchone()
+        last_entry_ts = row_entry[0] if row_entry else None
 
-        last_time = last_logged.get(student_no)
-        last_check = last_time or last_ts
-        if last_check and (now - last_check).total_seconds() < 60:
+        cur.execute("""
+            SELECT timestamps
+            FROM exit_logs
+            WHERE student_no = %s
+            ORDER BY timestamps DESC
+            LIMIT 1
+        """, (student_no,))
+        row_exit = cur.fetchone()
+        last_exit_ts = row_exit[0] if row_exit else None
+
+        if last_exit_ts and last_entry_ts and last_entry_ts >= last_exit_ts:
             if set_status:
-                set_status("Wait", "#FFBF66")
+                set_status("Already Logged Entry", "#FF6666")
             cur.close()
             conn.close()
             return False
@@ -63,10 +70,7 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
             conn.close()
             return False
 
-        # Format timestamp to "MM/DD/YYYY hh:mm:ss AM/PM" (Asia/Manila)
         formatted_ts = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
-
-        # Insert formatted string timestamp
         cur.execute("""
             INSERT INTO entry_logs (student_no, timestamps, method_id)
             VALUES (%s, %s, %s)
@@ -78,12 +82,71 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
 
         cur.close()
         conn.close()
-        last_logged[student_no] = now
-
         return True
 
     except psycopg2.Error as e:
         if set_status:
             set_status("DB Error", "#FF6666")
-        print(f"[LOG ERROR] {e}")
+        print("Entry log error:", e)
+        return False
+
+    
+def log_to_exit_logs(student_no, last_logged, set_status=None, method_id=None):
+    try:
+        now = datetime.now()
+        conn, _ = get_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT timestamps
+            FROM entry_logs
+            WHERE student_no = %s
+            ORDER BY timestamps DESC
+            LIMIT 1
+        """, (student_no,))
+        row_entry = cur.fetchone()
+        last_entry_ts = row_entry[0] if row_entry else None
+
+        cur.execute("""
+            SELECT timestamps
+            FROM exit_logs
+            WHERE student_no = %s
+            ORDER BY timestamps DESC
+            LIMIT 1
+        """, (student_no,))
+        row_exit = cur.fetchone()
+        last_exit_ts = row_exit[0] if row_exit else None
+
+        if last_entry_ts is None:
+            if set_status:
+                set_status("No Entry Found", "#FF6666")
+            cur.close()
+            conn.close()
+            return False
+
+        if last_exit_ts and last_exit_ts >= last_entry_ts:
+            if set_status:
+                set_status("Already Logged Exit", "#FF6666")
+            cur.close()
+            conn.close()
+            return False
+
+        cur.execute("""
+            INSERT INTO exit_logs (student_no, timestamps, method_id)
+            VALUES (%s, %s, %s)
+        """, (student_no, now, method_id))
+        conn.commit()
+
+        if set_status:
+            set_status("Exit Logged", "#77EE77")
+
+        cur.close()
+        conn.close()
+        last_logged[student_no] = now
+        return True
+
+    except Exception as e:
+        if set_status:
+            set_status("DB Error", "#FF6666")
+        print("Exit log error:", e)
         return False

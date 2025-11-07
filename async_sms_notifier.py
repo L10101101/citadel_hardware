@@ -42,7 +42,7 @@ async def send_sms(guardian_number: str, student_name: str, action: str):
 
 async def notify_parent_sms(student_no: str, action: str = "entered"):
     try:
-        conn, source = get_connection()
+        conn, _ = get_connection()
         cur = conn.cursor()
         cur.execute("""
             SELECT fullname, guardian_contact

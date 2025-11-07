@@ -17,7 +17,7 @@ def encrypt_template(template: bytes) -> bytes:
 
 
 def save_to_db(student_no: str, template: bytes):
-    conn, source = get_connection()  # ✅ unpack the tuple
+    conn, _ = get_connection()
     cur = conn.cursor()
 
     encrypted_template = encrypt_template(template)

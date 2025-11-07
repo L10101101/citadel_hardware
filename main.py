@@ -24,10 +24,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.camera_handler = CameraHandler(self)
         self.verification_handler = VerificationHandler(self)
 
-        # Reset
-        self.reset_info()
-
         # State
+        self.reset_info()
         self.verification_active = False
         self.current_qr = None
         self._suppress_feed = False
@@ -149,7 +147,13 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
         self.update_ui_verified(student_no, name, program, year_section, "Access Granted")
         self.set_status("Access Granted", "#77EE77")
-        log_to_entry_logs(student_no, self.last_logged, self.set_status, method_id=1)
+        log_to_entry_logs(
+            student_no,
+            last_logged=self.last_logged,
+            set_status=self.set_status,
+            method_id=1
+        )
+
         notify_parent_task(student_no)
         notify_parent_sms_task(student_no)
         self.inactivity_timer.start()

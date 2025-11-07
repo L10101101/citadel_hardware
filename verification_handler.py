@@ -20,7 +20,12 @@ class VerificationHandler:
             QTimer.singleShot(2000, self.main.reset_verification_state)
             return
 
-        success = log_to_entry_logs(student_no, self.main.last_logged, self.main.set_status, method_id=2)
+        success = log_to_entry_logs(
+            student_no,
+            last_logged=self.main.last_logged,
+            set_status=self.main.set_status,
+            method_id=2
+        )
 
         if success:
             student = lookup_student(student_no)

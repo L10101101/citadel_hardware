@@ -189,7 +189,7 @@ QLineEdit#txtStudentNo {
 
 /* QLabel */
 QLabel#lblStatus {
-    border-radius: 12px;                /* optional rounded corners */
+    border-radius: 10px;                /* optional rounded corners */
     padding: 4px 8px;
     background-color: #eee;
     color: #333;

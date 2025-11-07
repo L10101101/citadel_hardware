@@ -185,7 +185,7 @@ class Ui_Citadel(object):
 "\n"
 "/* QLabel */\n"
 "QLabel#lblStatus {\n"
-"    border-radius: 12px;                /* optional rounded corners */\n"
+"    border-radius: 10px;                /* optional rounded corners */\n"
 "    padding: 4px 8px;\n"
 "    background-color: #eee;\n"
 "    color: #333;\n"
