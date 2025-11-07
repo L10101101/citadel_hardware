@@ -6,15 +6,7 @@ from openvino.runtime import Core
 from scipy.spatial.distance import cosine
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-
-
-DB_CONFIG = {
-    "dbname": "citadel_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "localhost",
-    "port": 5432
-}
+from utils import get_connection
 
 
 load_dotenv()
@@ -62,10 +54,11 @@ def load_gallery(force_reload=False):
         return _gallery_cache
 
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT student_no, facial_recognition_data FROM students")
+        cur.execute("SELECT student_no, facial_recognition_data FROM students WHERE has_facial_recognition = TRUE")
         rows = cur.fetchall()
+        cur.close()
         conn.close()
     except Exception as e:
         print(f"[DB ERROR] {e}")
@@ -73,6 +66,8 @@ def load_gallery(force_reload=False):
 
     gallery = {}
     for sid, blob in rows:
+        if not blob:
+            continue
 
         if isinstance(blob, memoryview):
             blob = blob.tobytes()
@@ -88,13 +83,11 @@ def load_gallery(force_reload=False):
 
         try:
             decrypted = fernet.decrypt(blob)
-            embedding = np.frombuffer(decrypted, np.float32)
-            if embedding.size == 0:
-                continue
-
-            gallery[sid] = {"embedding": embedding}
+            embedding = np.frombuffer(decrypted, dtype=np.float32)
+            if embedding.size > 0:
+                gallery[sid] = {"embedding": embedding}
         except Exception as e:
-            print(f"{sid}: {e}")
+            print(f"[DECRYPT ERROR] {sid}: {e}")
 
     _gallery_cache = gallery
     return _gallery_cache

@@ -57,6 +57,7 @@ class VerificationHandler:
         if student:
             name, program, year, section = student
             self.main.update_ui_verified(qr_value, name, program, year, section, "QR Verified")
+            self.main.set_status("QR Verified", "#FFA500")
             self.main.camera_handler.start_camera()
             self.main.face_timeout_timer.start(10000)
         else:

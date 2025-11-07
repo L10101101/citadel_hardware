@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
 from PyQt6.QtCore import Qt, QTimer
 import psycopg2
-from face_enroll_thread import FaceEnrollWorker
+from face_enroll_worker import FaceEnrollWorker
 from finger_enroll_thread import FingerEnrollWorker
 from marquee_label import FooterMarquee
+from utils import get_connection
+
 
 class EnrollPage:
     def __init__(self, page_enroll: QWidget, main_window=None):
@@ -109,7 +111,7 @@ class EnrollPage:
         from PyQt6.QtGui import QImage, QPixmap
         h, w, ch = frame.shape
         bytes_per_line = ch * w
-        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_BGR888)
+        qimg = QImage(frame.tobytes(), w, h, bytes_per_line, QImage.Format.Format_BGR888)
         camera_label = self.page.findChild(QLabel, "cameraFeed_2")
         if camera_label:
             camera_label.setPixmap(
@@ -186,13 +188,7 @@ class EnrollPage:
 
 
     def student_exists(self, student_no):
-        conn = psycopg2.connect(
-            dbname="citadel_db",
-            user="postgres",
-            password="postgres",
-            host="127.0.0.1",
-            port=5432
-        )
+        conn = get_connection()
         cur = conn.cursor()
         cur.execute("SELECT 1 FROM students WHERE student_no = %s", (student_no,))
         found = cur.fetchone() is not None
@@ -210,15 +206,17 @@ class EnrollPage:
             port=5432
         )
         cur = conn.cursor()
+
         if mode == "face":
-            cur.execute("SELECT facial_recognition_data FROM students WHERE student_no = %s", (student_no,))
+            cur.execute("SELECT has_facial_recognition FROM students WHERE student_no = %s", (student_no,))
             result = cur.fetchone()
-            exists = result is not None and result[0] is not None
+            exists = bool(result and result[0])
         elif mode == "finger":
             cur.execute("SELECT 1 FROM fingerprints WHERE student_no = %s", (student_no,))
             exists = cur.fetchone() is not None
         else:
             exists = False
+
         cur.close()
         conn.close()
         return exists
@@ -264,7 +262,6 @@ class EnrollPage:
 
 
     def stop_enrollment(self):
-        """Stop any running enrollment thread safely."""
         if self.worker and self.worker.isRunning():
             self.worker.stop()
             self.worker.wait()

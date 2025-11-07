@@ -2,7 +2,6 @@ import psycopg2
 from datetime import datetime
 
 
-
 DB_CONFIG = {
     "dbname": "citadel_db",
     "user": "postgres",

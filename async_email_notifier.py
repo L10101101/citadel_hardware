@@ -1,18 +1,9 @@
-import psycopg2
 from datetime import datetime
 from email.message import EmailMessage
 import asyncio
 import threading
 from aiosmtplib import SMTP
-
-
-DB_CONFIG = {
-    "dbname": "citadel_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432
-}
+from utils import get_connection
 
 
 SMTP_CONFIG = {
@@ -22,10 +13,6 @@ SMTP_CONFIG = {
     "password": "ljcx sgug xwob grtw",
     "tls": True
 }
-
-
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
 
 
 async def send_login_email(guardian_email: str, student_name: str, timestamp: str):
@@ -67,6 +54,7 @@ async def notify_parent(student_no: str):
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     await send_login_email(guardian_email, student_name, timestamp)
+
 
 
 def notify_parent_task(student_no: str):

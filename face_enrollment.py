@@ -5,15 +5,7 @@ import os
 from openvino.runtime import Core
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-
-
-DB_CONFIG = {
-    "dbname": "citadel_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432
-}
+from utils import get_connection
 
 
 load_dotenv()
@@ -36,10 +28,6 @@ det_output = det_model.output(0)
 rec_output = rec_model.output(0)
 
 
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
-
-
 def open_camera():
     cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
     if not cap.isOpened():
@@ -48,6 +36,15 @@ def open_camera():
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, FPS)
     return cap
+
+
+def get_center_crop(frame):
+    h, w, _ = frame.shape
+    crop_size = min(h, w)
+    x_start = (w - crop_size) // 2
+    y_start = (h - crop_size) // 2
+    cropped = frame[y_start:y_start + crop_size, x_start:x_start + crop_size]
+    return cropped
 
 
 def get_face(frame):
@@ -78,7 +75,8 @@ def save_to_db(student_no, emb):
     cur = conn.cursor()
     cur.execute("""
         UPDATE students
-        SET facial_recognition_data = %s
+        SET facial_recognition_data = %s,
+            has_facial_recognition = TRUE
         WHERE student_no = %s
     """, (psycopg2.Binary(encrypted), student_no))
     conn.commit()

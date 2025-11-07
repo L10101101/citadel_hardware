@@ -1,18 +1,6 @@
 import psycopg2
 import msvcrt
-
-
-DB_CONFIG = {
-    "dbname": "citadel_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "localhost",
-    "port": 5432
-}
-
-
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+from utils import get_connection
 
 
 def read_qr_code():

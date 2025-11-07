@@ -635,7 +635,7 @@ class Ui_Citadel(object):
         Citadel.setMenuBar(self.menuBar)
 
         self.retranslateUi(Citadel)
-        self.stackedWidget.setCurrentIndex(1)
+        self.stackedWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Citadel)
 
     def retranslateUi(self, Citadel):

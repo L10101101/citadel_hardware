@@ -1,4 +1,4 @@
-import sys, psycopg2
+import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLineEdit, QLabel, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QTimer, QDateTime
 from PyQt6.QtGui import QPixmap
@@ -12,19 +12,6 @@ from camera_handler import CameraHandler
 from verification_handler import VerificationHandler
 from marquee_label import FooterMarquee
 from enroll_page import EnrollPage
-
-
-DB_CONFIG = {
-    "dbname": "citadel_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432
-}
-
-
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
 
 
 class MainWindow(QMainWindow, Ui_Citadel):
