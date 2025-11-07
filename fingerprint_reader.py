@@ -6,7 +6,6 @@ from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from psycopg2 import Binary
 
-load_dotenv()
 
 DB_CONFIG = {
     "dbname": "citadel_db",
@@ -16,6 +15,8 @@ DB_CONFIG = {
     "port": 5432
 }
 
+
+load_dotenv()
 FERNET_KEY = os.getenv("CRYPT_FERNET_KEY")
 cipher = Fernet(FERNET_KEY)
 
@@ -34,6 +35,7 @@ class FingerprintReader:
 
         self.dev_handle = self.zk.OpenDevice()
 
+
     def capture_template(self, max_attempts=5):
         for attempt in range(max_attempts):
             try:
@@ -45,6 +47,7 @@ class FingerprintReader:
                 pass
             sleep(0.5)
         return None
+
 
     def identify(self, template_bytes, threshold: int = 80):
         if not template_bytes:
@@ -70,6 +73,7 @@ class FingerprintReader:
             if score >= threshold:
                 return student_no
         return None
+
 
     def close(self):
         if self.dev_handle:

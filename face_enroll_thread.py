@@ -10,20 +10,20 @@ from face_enrollment import (
     STILL_DURATION
 )
 
+
 class FaceEnrollWorker(QThread):
     finished = pyqtSignal(bool, str)
     frameReady = pyqtSignal(object)
-
     def __init__(self, student_no, label_widget=None):
         super().__init__()
         self.student_no = student_no
         self.label_widget = label_widget
         self._running = True
-        self.cap = None  # <-- keep reference to camera
+        self.cap = None
 
+        
     def run(self):
         try:
-            # Open camera and keep reference for cleanup
             self.cap = open_camera()
             last_box = None
             still_start = None
@@ -45,7 +45,6 @@ class FaceEnrollWorker(QThread):
                     x1, y1, x2, y2 = face_box
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                    # Detect minimal motion
                     if last_box is not None:
                         dx = abs(x1 - last_box[0]) + abs(x2 - last_box[2])
                         dy = abs(y1 - last_box[1]) + abs(y2 - last_box[3])
@@ -64,21 +63,20 @@ class FaceEnrollWorker(QThread):
 
                     last_box = face_box
 
-                    # Overlay text
                     if still_start:
                         elapsed = now - still_start
                         remaining = max(0, STILL_DURATION - elapsed)
                         cv2.putText(frame, f"Capturing in {remaining:.1f}s",
                                     (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.7, (0, 255, 255), 2)
+                                    3.0, (0, 255, 255), 5)
                     else:
-                        cv2.putText(frame, "Hold still...",
+                        cv2.putText(frame, "Hold Still",
                                     (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.7, (255, 255, 0), 2)
+                                    3.0, (255, 255, 0), 5)
                 else:
-                    cv2.putText(frame, "No face detected",
+                    cv2.putText(frame, "No Face Detected",
                                 (20, 40), cv2.FONT_HERSHEY_SIMPLEX,
-                                0.7, (0, 0, 255), 2)
+                                3.0, (0, 0, 255), 5)
                     still_start = None
                     last_box = None
 
@@ -88,25 +86,22 @@ class FaceEnrollWorker(QThread):
             self.finished.emit(False, f"Error: {e}")
 
         finally:
-            # --- Safe cleanup ---
             if self.cap:
                 self.cap.release()
                 self.cap = None
 
-            # Process face crop if captured
             if face_crop is not None:
                 try:
                     emb = extract_embedding(face_crop)
                     save_to_db(self.student_no, emb)
-                    self.finished.emit(True, "Facial enrollment successful.")
+                    self.finished.emit(True, "Success")
                 except Exception as e:
-                    self.finished.emit(False, f"Error saving data: {e}")
+                    self.finished.emit(False, f"Error{e}")
             elif self._running:
-                # Finished without a face crop
-                self.finished.emit(False, "Enrollment cancelled or no face captured.")
+                self.finished.emit(False, "Enrollment cancelled")
+
 
     def stop(self):
-        """Stop the thread and release camera safely."""
         self._running = False
         if self.cap:
             self.cap.release()

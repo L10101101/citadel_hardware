@@ -1,5 +1,5 @@
 @echo off
-:: Check for admin privileges
+:: ADMIN
 net session >nul 2>&1
 if %errorLevel% NEQ 0 (
     echo ⚠️ Admin privileges required. Relaunching as administrator...
@@ -7,14 +7,14 @@ if %errorLevel% NEQ 0 (
     exit /b
 )
 
-REM Navigate to Citadel project folder
+REM FOLDER
 cd /d C:\Citadel
 
-REM Activate virtual environment
+REM VENV
 call venv\Scripts\activate.bat
 
-REM Run Main program
+REM MAIN
 python main.py
 
-REM Keep the command prompt open
+REM KEEP
 cmd /k

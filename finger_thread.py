@@ -3,9 +3,9 @@ from fingerprint_reader import FingerprintReader
 from time import sleep
 import threading
 
+
 class FingerprintThread(QThread):
     fingerprintDetected = pyqtSignal(str)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.reader = None
@@ -13,10 +13,12 @@ class FingerprintThread(QThread):
         self._active = False
         self._lock = threading.Lock()
 
+
     def activate(self):
         with self._lock:
             if not self._active:
                 self._active = True
+
 
     def deactivate(self):
         with self._lock:
@@ -29,9 +31,11 @@ class FingerprintThread(QThread):
                         pass
                     self.reader = None
 
+
     def stop(self):
         self._stop = True
         self.deactivate()
+
 
     def run(self):
         while not self._stop:
@@ -42,7 +46,6 @@ class FingerprintThread(QThread):
                 sleep(0.5)
                 continue
 
-            # Initialize
             if not self.reader:
                 try:
                     self.reader = FingerprintReader()
@@ -69,5 +72,4 @@ class FingerprintThread(QThread):
                     self.reader = None
                 sleep(1)
 
-        # Cleanup
         self.deactivate()

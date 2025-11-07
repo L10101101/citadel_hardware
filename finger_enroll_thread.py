@@ -1,11 +1,14 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 
+
 class FingerEnrollWorker(QThread):
     finished = pyqtSignal(bool, str)
+
 
     def __init__(self, student_no):
         super().__init__()
         self.student_no = student_no
+
 
     def run(self):
         try:
@@ -17,6 +20,6 @@ class FingerEnrollWorker(QThread):
             save_to_db(self.student_no, template)
             reader.close()
 
-            self.finished.emit(True, "Fingerprint enrollment successful.")
+            self.finished.emit(True, "Success")
         except Exception as e:
             self.finished.emit(False, f"Error: {e}")

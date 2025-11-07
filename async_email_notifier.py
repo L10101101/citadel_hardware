@@ -5,7 +5,7 @@ import asyncio
 import threading
 from aiosmtplib import SMTP
 
-# --- PostgreSQL configuration ---
+
 DB_CONFIG = {
     "dbname": "citadel_db",
     "user": "postgres",
@@ -14,7 +14,7 @@ DB_CONFIG = {
     "port": 5432
 }
 
-# --- SMTP configuration ---
+
 SMTP_CONFIG = {
     "host": "smtp.gmail.com",
     "port": 587,
@@ -23,8 +23,10 @@ SMTP_CONFIG = {
     "tls": True
 }
 
+
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
+
 
 async def send_login_email(guardian_email: str, student_name: str, timestamp: str):
     msg = EmailMessage()
@@ -41,11 +43,10 @@ async def send_login_email(guardian_email: str, student_name: str, timestamp: st
     await smtp.send_message(msg)
     await smtp.quit()
 
+
 async def notify_parent(student_no: str):
     conn = get_connection()
     cur = conn.cursor()
-
-    # Fetch guardian email and student name
     cur.execute("""
         SELECT fullname, guardian_email
         FROM students
@@ -66,6 +67,7 @@ async def notify_parent(student_no: str):
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     await send_login_email(guardian_email, student_name, timestamp)
+
 
 def notify_parent_task(student_no: str):
     def runner():

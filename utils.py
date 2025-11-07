@@ -1,8 +1,8 @@
 import psycopg2
 from datetime import datetime
-from PyQt6.QtCore import QTimer
 
-# PostgreSQL connection settings
+
+
 DB_CONFIG = {
     "dbname": "citadel_db",
     "user": "postgres",
@@ -36,16 +36,10 @@ def lookup_student(student_no):
 
 
 def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
-    """
-    Logs student entry into PostgreSQL. 
-    - set_status: callable like self.main.set_status(text, color)
-    """
     try:
         now = datetime.now()
         conn = get_connection()
         cur = conn.cursor()
-
-        # Fetch last timestamp from DB
         cur.execute("""
             SELECT timestamps
             FROM entry_logs
@@ -56,7 +50,6 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
         row = cur.fetchone()
         last_ts = row[0] if row else None
 
-        # Determine cooldown
         last_time = last_logged.get(student_no)
         last_check = last_time or last_ts
         if last_check and (now - last_check).total_seconds() < 60:
@@ -66,7 +59,6 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
             conn.close()
             return False
 
-        # Insert log with method_id
         student = lookup_student(student_no)
         if not student:
             if set_status:
@@ -90,7 +82,6 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
         return True
 
     except psycopg2.Error as e:
-        print("DB error (log_to_entry_logs):", e)
         if set_status:
             set_status("DB Error", "#FF6666")
         return False

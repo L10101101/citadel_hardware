@@ -159,7 +159,38 @@ class Ui_Citadel(object):
 "    background-color: #fff;\n"
 "}\n"
 "\n"
-"")
+"QPushButton#btnFace,\n"
+"QPushButton#btnFinger,\n"
+"QPushButton#btnSubmit {\n"
+"    border-radius: 20px; \n"
+"    background-color: #4CAF50;       /* green background */\n"
+"    color: white;                     /* text color */\n"
+"    padding: 6px 12px;                /* vertical/horizontal padding */\n"
+"    font-weight: bold;\n"
+"}\n"
+"\n"
+"QPushButton#btnFace:hover,\n"
+"QPushButton#btnFinger:hover,\n"
+"QPushButton#btnSubmit:hover {\n"
+"    background-color: #45A049;       /* slightly darker on hover */\n"
+"}\n"
+"\n"
+"/* QLineEdit */\n"
+"QLineEdit#txtStudentNo {\n"
+"    border: 2px solid #ccc;           /* border color */\n"
+"    border-radius: 15px;              /* rounded corners */\n"
+"    padding: 4px 8px;                 /* inner spacing */\n"
+"    background-color: #f9f9f9;        /* light background */\n"
+"}\n"
+"\n"
+"/* QLabel */\n"
+"QLabel#lblStatus {\n"
+"    border-radius: 12px;                /* optional rounded corners */\n"
+"    padding: 4px 8px;\n"
+"    background-color: #eee;\n"
+"    color: #333;\n"
+"    font-weight: bold;\n"
+"}")
         self.centralwidget = QtWidgets.QWidget(parent=Citadel)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout1 = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -446,7 +477,7 @@ class Ui_Citadel(object):
         self.cameraFeed_2 = QtWidgets.QLabel(parent=self.bodyWidget_2)
         self.cameraFeed_2.setEnabled(True)
         self.cameraFeed_2.setMinimumSize(QtCore.QSize(0, 0))
-        self.cameraFeed_2.setMaximumSize(QtCore.QSize(600, 600))
+        self.cameraFeed_2.setMaximumSize(QtCore.QSize(16662777, 16662777))
         self.cameraFeed_2.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.cameraFeed_2.setText("")
         self.cameraFeed_2.setTextFormat(QtCore.Qt.TextFormat.PlainText)
@@ -458,7 +489,7 @@ class Ui_Citadel(object):
         self.cameraLayout_2.addItem(spacerItem5)
         self.bodyLayout_2.addLayout(self.cameraLayout_2)
         self.detailsContainer_2 = QtWidgets.QWidget(parent=self.bodyWidget_2)
-        self.detailsContainer_2.setMaximumSize(QtCore.QSize(600, 16777215))
+        self.detailsContainer_2.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.detailsContainer_2.setObjectName("detailsContainer_2")
         self.horizontalLayout3_2 = QtWidgets.QHBoxLayout(self.detailsContainer_2)
         self.horizontalLayout3_2.setContentsMargins(-1, 22, -1, 22)
@@ -475,37 +506,62 @@ class Ui_Citadel(object):
         self.detailsWidget_2.setMaximumSize(QtCore.QSize(16662777, 16662777))
         self.detailsWidget_2.setObjectName("detailsWidget_2")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.detailsWidget_2)
+        self.verticalLayout_3.setContentsMargins(-1, 40, -1, 40)
+        self.verticalLayout_3.setSpacing(0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.studentNoVerticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.studentNoVerticalLayout_3.setContentsMargins(10, 50, 10, 50)
+        self.studentNoVerticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.studentNoVerticalLayout_3.setObjectName("studentNoVerticalLayout_3")
         self.studentNoWidget = QtWidgets.QWidget(parent=self.detailsWidget_2)
         self.studentNoWidget.setMinimumSize(QtCore.QSize(0, 0))
         self.studentNoWidget.setObjectName("studentNoWidget")
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.studentNoWidget)
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.btnFinger = QtWidgets.QPushButton(parent=self.studentNoWidget)
-        self.btnFinger.setMinimumSize(QtCore.QSize(0, 50))
-        self.btnFinger.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-        self.btnFinger.setObjectName("btnFinger")
-        self.verticalLayout_4.addWidget(self.btnFinger)
+        self.verticalLayout_10 = QtWidgets.QVBoxLayout(self.studentNoWidget)
+        self.verticalLayout_10.setContentsMargins(60, 70, 60, 20)
+        self.verticalLayout_10.setSpacing(15)
+        self.verticalLayout_10.setObjectName("verticalLayout_10")
+        self.label_2 = QtWidgets.QLabel(parent=self.studentNoWidget)
+        self.label_2.setMinimumSize(QtCore.QSize(0, 0))
+        font = QtGui.QFont()
+        font.setFamily("Poppins-Regular")
+        font.setPointSize(14)
+        font.setBold(True)
+        self.label_2.setFont(font)
+        self.label_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout_10.addWidget(self.label_2)
+        self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_9.setSpacing(20)
+        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
         self.btnFace = QtWidgets.QPushButton(parent=self.studentNoWidget)
         self.btnFace.setMinimumSize(QtCore.QSize(0, 50))
         self.btnFace.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
         self.btnFace.setObjectName("btnFace")
-        self.verticalLayout_4.addWidget(self.btnFace)
+        self.horizontalLayout_9.addWidget(self.btnFace)
+        self.btnFinger = QtWidgets.QPushButton(parent=self.studentNoWidget)
+        self.btnFinger.setMinimumSize(QtCore.QSize(0, 50))
+        self.btnFinger.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        self.btnFinger.setObjectName("btnFinger")
+        self.horizontalLayout_9.addWidget(self.btnFinger)
+        self.verticalLayout_10.addLayout(self.horizontalLayout_9)
         self.txtStudentNo = QtWidgets.QLineEdit(parent=self.studentNoWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.txtStudentNo.sizePolicy().hasHeightForWidth())
+        self.txtStudentNo.setSizePolicy(sizePolicy)
         self.txtStudentNo.setMinimumSize(QtCore.QSize(0, 50))
+        self.txtStudentNo.setMaxLength(10)
         self.txtStudentNo.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.txtStudentNo.setReadOnly(False)
         self.txtStudentNo.setObjectName("txtStudentNo")
-        self.verticalLayout_4.addWidget(self.txtStudentNo)
+        self.verticalLayout_10.addWidget(self.txtStudentNo)
         self.btnSubmit = QtWidgets.QPushButton(parent=self.studentNoWidget)
         self.btnSubmit.setMinimumSize(QtCore.QSize(0, 50))
         self.btnSubmit.setMaximumSize(QtCore.QSize(16777215, 16777215))
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
         font.setPointSize(12)
+        font.setBold(True)
         self.btnSubmit.setFont(font)
         self.btnSubmit.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
         self.btnSubmit.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
@@ -513,11 +569,11 @@ class Ui_Citadel(object):
         self.btnSubmit.setDefault(False)
         self.btnSubmit.setFlat(False)
         self.btnSubmit.setObjectName("btnSubmit")
-        self.verticalLayout_4.addWidget(self.btnSubmit)
+        self.verticalLayout_10.addWidget(self.btnSubmit)
         self.studentNoVerticalLayout_3.addWidget(self.studentNoWidget)
         self.verticalLayout_3.addLayout(self.studentNoVerticalLayout_3)
         self.statusLayout4_2 = QtWidgets.QHBoxLayout()
-        self.statusLayout4_2.setContentsMargins(100, 10, 100, 10)
+        self.statusLayout4_2.setContentsMargins(60, 0, 60, 40)
         self.statusLayout4_2.setObjectName("statusLayout4_2")
         self.statusWidget_2 = QtWidgets.QWidget(parent=self.detailsWidget_2)
         self.statusWidget_2.setMinimumSize(QtCore.QSize(0, 0))
@@ -532,6 +588,7 @@ class Ui_Citadel(object):
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
         font.setPointSize(12)
+        font.setBold(True)
         self.lblStatus.setFont(font)
         self.lblStatus.setAutoFillBackground(False)
         self.lblStatus.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -595,8 +652,9 @@ class Ui_Citadel(object):
         self.schoolNameLabel_2.setText(_translate("Citadel", "University of Caloocan City"))
         self.schoolSubLabel_2.setText(_translate("Citadel", "Bagong Silang Campus | College of Engineering"))
         self.dateTimeLabel_2.setText(_translate("Citadel", "October 15, 2025 | 05:00AM"))
-        self.btnFinger.setText(_translate("Citadel", "Fingerprint"))
+        self.label_2.setText(_translate("Citadel", "ENROLL STUDENT DATA"))
         self.btnFace.setText(_translate("Citadel", "Face Data"))
+        self.btnFinger.setText(_translate("Citadel", "Fingerprint"))
         self.txtStudentNo.setPlaceholderText(_translate("Citadel", "Enter student no."))
         self.btnSubmit.setText(_translate("Citadel", "Submit"))
         self.footerLabel_2.setText(_translate("Citadel", "Welcome to University of Caloocan City | Please scan your QR code and verify through biometrics for secure access."))

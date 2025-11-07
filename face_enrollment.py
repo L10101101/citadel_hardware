@@ -6,9 +6,7 @@ from openvino.runtime import Core
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
-load_dotenv()
 
-# ---------- CONFIG ----------
 DB_CONFIG = {
     "dbname": "citadel_db",
     "user": "postgres",
@@ -17,6 +15,8 @@ DB_CONFIG = {
     "port": 5432
 }
 
+
+load_dotenv()
 FERNET_KEY = os.getenv("CRYPT_FERNET_KEY")
 cipher = Fernet(FERNET_KEY)
 CONF_THRESHOLD = 0.8
@@ -27,7 +27,6 @@ CAMERA_HEIGHT = 2160
 FPS = 30
 
 
-# Load OpenVINO models once
 DET_MODEL = "./models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml"
 REC_MODEL = "./models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml"
 ie = Core()

@@ -1,6 +1,7 @@
 Package             Version     Build
 ------------------- ----------- -----
 python              3.12.10
+aiosmtplib          5.0.0
 cffi                2.0.0
 click               8.3.0
 click-default-group 1.2.4

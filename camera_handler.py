@@ -4,6 +4,7 @@ from PyQt6.QtGui import QImage, QPixmap
 from camera_thread import CameraThread
 from face_thread import FaceThread
 
+
 class CameraHandler:
     def __init__(self, main_window):
         self.main = main_window
@@ -11,13 +12,14 @@ class CameraHandler:
         self._display_bgr = None
         self._display_info = None
 
-    # -------------------- Camera Control --------------------
+
     def start_camera(self):
         if self.camera_thread and self.camera_thread.isRunning():
             return
         self.camera_thread = CameraThread(camera_index=0)
         self.camera_thread.frameCaptured.connect(self.update_camera_frame)
         self.camera_thread.start()
+
 
     def stop_camera(self):
         if self.camera_thread and self.camera_thread.isRunning():
@@ -26,7 +28,7 @@ class CameraHandler:
             self.camera_thread = None
         self.clear_camera_feed()
 
-    # -------------------- Frame Update --------------------
+
     def update_camera_frame(self, frame):
         if self.main._suppress_feed:
             return
@@ -59,6 +61,7 @@ class CameraHandler:
             self.main.face_thread.result_ready.connect(self.main.on_face_result)
             self.main.face_thread.start()
 
+
     def update_pixmap(self, bgr_frame):
         rgb_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
         h_img, w_img = rgb_frame.shape[:2]
@@ -70,6 +73,7 @@ class CameraHandler:
             Qt.TransformationMode.SmoothTransformation
         )
         self.main.cameraFeed.setPixmap(pixmap)
+
 
     def draw_face_box(self, box, ok):
         x1, y1, x2, y2 = box
@@ -89,6 +93,7 @@ class CameraHandler:
         thickness = max(2, int(round(info["display_w"] / 300)))
         cv2.rectangle(disp, (dx1, dy1), (dx2, dy2), color, thickness)
         self.update_pixmap(disp)
+
 
     def clear_camera_feed(self):
         pixmap = QPixmap("./gui/assets/user.png")

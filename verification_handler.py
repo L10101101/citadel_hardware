@@ -3,11 +3,12 @@ from qr_verification import verify_qr_in_db
 from utils import lookup_student, log_to_entry_logs
 from async_email_notifier import notify_parent_task
 
+
 class VerificationHandler:
     def __init__(self, main_window):
         self.main = main_window
 
-    # -------------------- Fingerprint --------------------
+
     def fingerprint_verified(self, student_no):
         if self.main.verification_active:
             return
@@ -19,7 +20,6 @@ class VerificationHandler:
             QTimer.singleShot(2000, self.main.reset_verification_state)
             return
 
-        # Optional UI info
         success = log_to_entry_logs(student_no, self.main.last_logged, self.main.set_status, method_id=2)
 
         if success:
@@ -31,7 +31,7 @@ class VerificationHandler:
 
         QTimer.singleShot(2000, self.main.reset_verification_state)
 
-    # -------------------- QR --------------------
+
     def on_qr_input_received(self, qr_value):
         if self.main.verification_active:
             return
@@ -62,7 +62,7 @@ class VerificationHandler:
         else:
             self.main.set_status("Access Denied", "#FF6666")
 
-    # -------------------- Face Timeout --------------------
+
     def on_face_timeout(self):
         if self.main.verification_active and self.main.current_qr:
             self.main.reset_verification_state()

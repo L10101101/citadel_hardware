@@ -6,7 +6,6 @@ from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
 
 DB_CONFIG = {
     "dbname": "citadel_db",
@@ -16,8 +15,9 @@ DB_CONFIG = {
     "port": 5432
 }
 
-MAX_CAPTURE_ATTEMPTS = 5
 
+load_dotenv()
+MAX_CAPTURE_ATTEMPTS = 5
 FERNET_KEY = os.getenv("CRYPT_FERNET_KEY")
 cipher = Fernet(FERNET_KEY)
 
@@ -46,7 +46,6 @@ def save_to_db(student_no: str, template: bytes):
     conn.commit()
     cur.close()
     conn.close()
-    print(f"✅ Fingerprint stored for {student_no}")
 
 
 def capture_fingerprint(reader: FingerprintReader) -> bytes:
@@ -54,24 +53,5 @@ def capture_fingerprint(reader: FingerprintReader) -> bytes:
         template = reader.capture_template()
         if template:
             return template
-        print(f"⚠ Attempt {attempt}/{MAX_CAPTURE_ATTEMPTS}: Adjust finger...")
         sleep(1)
-    raise RuntimeError("❌ Could not capture fingerprint")
-
-
-def main():
-    reader = FingerprintReader()
-    try:
-        print("🖐 Place finger on sensor...")
-        template = capture_fingerprint(reader)
-
-        student_no = input("Enter Student Number: ").strip()
-
-        save_to_db(student_no, template)
-        print("🎉 Enrollment Complete!")
-    finally:
-        reader.close()
-
-
-if __name__ == "__main__":
-    main()
+    raise RuntimeError("Failed")

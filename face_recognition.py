@@ -7,10 +7,7 @@ from scipy.spatial.distance import cosine
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
 
-# Constants
 DB_CONFIG = {
     "dbname": "citadel_db",
     "user": "postgres",
@@ -19,34 +16,34 @@ DB_CONFIG = {
     "port": 5432
 }
 
-# Fernet setup
+
+load_dotenv()
 FERNET_KEY = os.getenv("CRYPT_FERNET_KEY")
 if not FERNET_KEY:
     raise ValueError("Missing FERNET_KEY in .env file")
-
 fernet = Fernet(FERNET_KEY.encode())
+
 
 OPENVINO_LIBS = r".\venv\Lib\site-packages\openvino\libs"
 os.environ["PATH"] = OPENVINO_LIBS + os.pathsep + os.environ.get("PATH", "")
 
-DET_MODEL = "./models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml"
-REC_MODEL = "./models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml"
 
 PROCESS_WIDTH, PROCESS_HEIGHT = 960, 540
 CONF_THRESHOLD = 0.75
 SIM_THRESHOLD = 0.75
 
-# Initialize OpenVINO Core
+
+DET_MODEL = "./models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml"
+REC_MODEL = "./models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml"
+
+
 _ie = Core()
-
-
 def _load_model(model_path, device="GPU"):
     try:
         model = _ie.compile_model(_ie.read_model(model_path), device)
         return model
     except Exception:
         return None
-
 
 _det_model = _load_model(DET_MODEL)
 _rec_model = _load_model(REC_MODEL)
@@ -70,50 +67,36 @@ def load_gallery(force_reload=False):
         cur.execute("SELECT student_no, facial_recognition_data FROM students")
         rows = cur.fetchall()
         conn.close()
-        print(f"[DEBUG] {len(rows)} embeddings fetched from DB")
     except Exception as e:
         print(f"[DB ERROR] {e}")
         return {}
 
     gallery = {}
     for sid, blob in rows:
-        if not blob:
-            print(f"[WARN] Empty embedding for {sid}")
-            continue
 
-        # Ensure bytes type before decryption
         if isinstance(blob, memoryview):
             blob = blob.tobytes()
         elif isinstance(blob, str):
             try:
-                # Try HEX decode first
                 blob = bytes.fromhex(blob)
-                print(f"[INFO] HEX-decoded embedding for {sid}")
             except ValueError:
-                # Otherwise assume UTF-8 encoded base64 or raw text
                 try:
                     import base64
                     blob = base64.b64decode(blob)
-                    print(f"[INFO] Base64-decoded embedding for {sid}")
                 except Exception:
                     blob = blob.encode("utf-8")
-                    print(f"[WARN] Fallback UTF-8 encoding for {sid}")
 
-        # Attempt decryption
         try:
             decrypted = fernet.decrypt(blob)
             embedding = np.frombuffer(decrypted, np.float32)
             if embedding.size == 0:
-                print(f"[WARN] Zero-length embedding for {sid}")
                 continue
 
             gallery[sid] = {"embedding": embedding}
-            print(f"[DEBUG] Decrypted {sid} ({len(blob)} bytes → {embedding.size} floats)")
         except Exception as e:
-            print(f"[DECRYPT ERROR] {sid}: {e}")
+            print(f"{sid}: {e}")
 
     _gallery_cache = gallery
-    print(f"[DEBUG] Gallery loaded successfully ({len(_gallery_cache)} entries)")
     return _gallery_cache
 
 
@@ -126,7 +109,7 @@ def reset_models():
         _rec_model = _load_model(REC_MODEL)
         _det_req = _det_model.create_infer_request() if _det_model else None
     except Exception as e:
-        print(f"[ERROR] Failed to reload models: {e}")
+        print(f"Failed To R {e}")
 
 
 def preprocess(img, h, w, rgb=False):
@@ -167,7 +150,7 @@ def verify_face(school_id, frame, gallery, return_box=False):
     ]
 
     if not faces:
-        return False, "No face detected", None
+        return False, "No Face Detected", None
 
     _, xmin, ymin, xmax, ymax = max(faces, key=lambda f: f[0])
     scale_x = frame.shape[1] / PROCESS_WIDTH
@@ -181,11 +164,11 @@ def verify_face(school_id, frame, gallery, return_box=False):
 
     face_crop = frame[y1:y2, x1:x2]
     if face_crop.size == 0:
-        return False, "Invalid crop", (x1, y1, x2, y2)
+        return False, "Invalid Crop", (x1, y1, x2, y2)
 
     emb = get_embedding(face_crop)
     if emb is None:
-        return False, "Embedding failed", (x1, y1, x2, y2)
+        return False, "Embedding Failed", (x1, y1, x2, y2)
 
     sims = [(1 - cosine(emb, g["embedding"]), sid) for sid, g in gallery.items()]
     sims.sort(reverse=True, key=lambda x: x[0])

@@ -1,4 +1,4 @@
-import sys
+import sys, psycopg2
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLineEdit, QLabel, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QTimer, QDateTime
 from PyQt6.QtGui import QPixmap
@@ -13,8 +13,7 @@ from verification_handler import VerificationHandler
 from marquee_label import FooterMarquee
 from enroll_page import EnrollPage
 
-# --- PostgreSQL configuration ---
-import psycopg2
+
 DB_CONFIG = {
     "dbname": "citadel_db",
     "user": "postgres",
@@ -23,8 +22,10 @@ DB_CONFIG = {
     "port": 5432
 }
 
+
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
+
 
 class MainWindow(QMainWindow, Ui_Citadel):
     def __init__(self):
@@ -48,11 +49,9 @@ class MainWindow(QMainWindow, Ui_Citadel):
         # Tabs
         self.actionMain = self.menuBar.addAction("Main")
         self.actionMain.triggered.connect(lambda: self.show_page("main"))
-
         self.enroll_logic = EnrollPage(self.page_enroll)
         self.actionEnroll = self.menuBar.addAction("Enroll")
         self.actionEnroll.triggered.connect(lambda: self.show_page("enroll"))
-
         self.actionSettings = self.menuBar.addAction("Settings")
         self.actionSettings.triggered.connect(lambda: self.stackedWidget.setCurrentWidget(self.page_settings))
 
@@ -106,9 +105,9 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.overlay_image.setGraphicsEffect(opacity_effect)
         self.overlay_image.show()
 
-    # ------------------ Page Switching ------------------
+
+    # Reset
     def show_page(self, page_name):
-        # Stop any running enrollment to release camera
         if hasattr(self, "enroll_logic") and self.enroll_logic:
             self.enroll_logic.stop_enrollment()
 
@@ -123,24 +122,21 @@ class MainWindow(QMainWindow, Ui_Citadel):
                 reset_models()
                 self.gallery = load_gallery(force_reload=True)
 
-                # Stop previous camera thread completely
                 self.camera_handler.stop_camera()
                 self.camera_handler._display_bgr = None
                 self.camera_handler._display_info = None
 
-                # Reset current QR so face verification triggers correctly on next scan
                 self.current_qr = None  
 
-                print("[DEBUG] Camera restarted and gallery reloaded after enrollment.")
             except Exception as e:
-                print(f"[WARN] Failed to reinitialize face recognition: {e}")
+                print(f"{e}")
 
         elif page_name == "enroll":
             self.stackedWidget.setCurrentWidget(self.page_enroll)
 
         else:
-            # For settings or other pages
             self.stackedWidget.setCurrentWidget(self.pages.get(page_name, self.page_main))
+
 
     def on_face_result(self, ok, info, box):
         if self._suppress_feed or not self.verification_active:
@@ -154,6 +150,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.statusLabel.setText(info)
         if box:
             self.camera_handler.draw_face_box(box, ok)
+
 
     def qr_verified_success(self, student_no, name):
         student = lookup_student(student_no)
@@ -169,7 +166,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.hiddenInput.setEnabled(True)
         self.fingerprint_thread.activate()
 
-    # -------------------- UI Updates --------------------
+
+    # UI
     def update_ui_verified(self, student_no, name, program, year, section, status):
         self.nameLabel.setText(name)
         self.programLabel.setText(f"{program} {year}-{section}")
@@ -177,6 +175,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.entryLabel.setText(QDateTime.currentDateTime().toString("dddd | MMM d, yyyy | hh:mm AP"))
         self.statusLabel.setText(status)
     
+
     def set_status(self, text, color):
         self.statusLabel.setText(text)
         self.statusLabel.setStyleSheet(f"""
@@ -187,15 +186,18 @@ class MainWindow(QMainWindow, Ui_Citadel):
             padding: 5px;
         """)
     
+
     def resizeEvent(self, event):
         self.overlay_image.move(self.width() - 180, self.height() - 250)
         super().resizeEvent(event)
 
-    # -------------------- Misc --------------------
+
+    # Misc
     def start_inactivity_timer(self):
         self.inactivity_timer.start()
         self.set_status("Ready", "#FFBF66")
         self.camera_handler.clear_camera_feed()
+
 
     def reset_verification_state(self):
         self.verification_active = False
@@ -204,6 +206,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.hiddenInput.setEnabled(True)
         self.fingerprint_thread.activate()
 
+
     def reset_info(self):
         self.camera_handler.clear_camera_feed()
         self.nameLabel.setText("-----")
@@ -211,15 +214,17 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.idLabel.setText("-----")
         self.entryLabel.setText("-----")
 
+
     def eventFilter(self, obj, event):
-        # Only keep hiddenInput focused on main page
         if self.stackedWidget.currentWidget() == self.page_main:
             self.hiddenInput.setFocus()
         return super().eventFilter(obj, event)
 
+
     def update_datetime(self):
         self.dateTimeLabel.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
         self.dateTimeLabel_2.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
+
 
     def closeEvent(self, event):
         if getattr(self, 'face_thread', None) and self.face_thread.isRunning():
@@ -233,7 +238,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.fingerprint_thread.wait(2000)
         super().closeEvent(event)
 
-# -------------------- Run --------------------
+
+# Main
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
