@@ -1,12 +1,11 @@
 import os
 import cv2
 import numpy as np
-import psycopg2
 from openvino.runtime import Core
 from scipy.spatial.distance import cosine
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-from utils import get_connection
+from db_utils import get_connection
 
 
 load_dotenv()
@@ -49,34 +48,37 @@ _gallery_cache = None
 
 def load_gallery(force_reload=False):
     global _gallery_cache
-
     if _gallery_cache is not None and not force_reload:
         return _gallery_cache
 
     try:
-        conn = get_connection()
+        conn, source = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT student_no, facial_recognition_data FROM students WHERE has_facial_recognition = TRUE")
+        cur.execute("""
+            SELECT student_no, facial_recognition_data
+            FROM students
+            WHERE has_facial_recognition = TRUE
+        """)
         rows = cur.fetchall()
-        cur.close()
-        conn.close()
     except Exception as e:
         print(f"[DB ERROR] {e}")
         return {}
+    finally:
+        cur.close()
+        conn.close()
 
     gallery = {}
     for sid, blob in rows:
         if not blob:
             continue
-
         if isinstance(blob, memoryview):
             blob = blob.tobytes()
         elif isinstance(blob, str):
             try:
                 blob = bytes.fromhex(blob)
             except ValueError:
+                import base64
                 try:
-                    import base64
                     blob = base64.b64decode(blob)
                 except Exception:
                     blob = blob.encode("utf-8")
@@ -95,14 +97,13 @@ def load_gallery(force_reload=False):
 
 def reset_models():
     global _det_model, _rec_model, _det_req, _gallery_cache
-
     _gallery_cache = None
     try:
         _det_model = _load_model(DET_MODEL)
         _rec_model = _load_model(REC_MODEL)
         _det_req = _det_model.create_infer_request() if _det_model else None
     except Exception as e:
-        print(f"Failed To R {e}")
+        print(f"[RESET MODELS ERROR] {e}")
 
 
 def preprocess(img, h, w, rgb=False):
@@ -145,15 +146,16 @@ def verify_face(school_id, frame, gallery, return_box=False):
     if not faces:
         return False, "No Face Detected", None
 
-    _, xmin, ymin, xmax, ymax = max(faces, key=lambda f: f[0])
+    _, xmin, ymin, xmax, ymax = max(
+        faces,
+        key=lambda f: f[0] * ((f[3]-f[1]) * (f[4]-f[2]))
+    )
+
     scale_x = frame.shape[1] / PROCESS_WIDTH
     scale_y = frame.shape[0] / PROCESS_HEIGHT
-
-    x1, y1, x2, y2 = map(int, [
-        xmin * scale_x, ymin * scale_y, xmax * scale_x, ymax * scale_y
-    ])
-    x1, y1 = max(x1, 0), max(y1, 0)
-    x2, y2 = min(x2, frame.shape[1]), min(y2, frame.shape[0])
+    x1, y1, x2, y2 = map(int, [xmin * scale_x, ymin * scale_y, xmax * scale_x, ymax * scale_y])
+    x1, y1 = max(0, x1), max(0, y1)
+    x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
 
     face_crop = frame[y1:y2, x1:x2]
     if face_crop.size == 0:
@@ -165,7 +167,6 @@ def verify_face(school_id, frame, gallery, return_box=False):
 
     sims = [(1 - cosine(emb, g["embedding"]), sid) for sid, g in gallery.items()]
     sims.sort(reverse=True, key=lambda x: x[0])
-
     best_sim, best_id = sims[0]
     ok = best_sim >= SIM_THRESHOLD
 

@@ -574,7 +574,7 @@ QLabel#lblStatus {
                         </widget>
                        </item>
                        <item>
-                        <widget class="QLabel" name="label_3">
+                        <widget class="QLabel" name="yearSecLabel">
                          <property name="font">
                           <font>
                            <family>Poppins-Regular</family>

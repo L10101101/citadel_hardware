@@ -2,7 +2,7 @@ from PyQt6.QtCore import QTimer
 from qr_verification import verify_qr_in_db
 from utils import lookup_student, log_to_entry_logs
 from async_email_notifier import notify_parent_task
-
+from async_sms_notifier import notify_parent_sms_task
 
 class VerificationHandler:
     def __init__(self, main_window):
@@ -25,9 +25,10 @@ class VerificationHandler:
         if success:
             student = lookup_student(student_no)
             if student:
-                name, program, year, section = student
-                self.main.update_ui_verified(student_no, name, program, year, section, "Access Granted")
+                name, program, year_section = student
+                self.main.update_ui_verified(student_no, name, program, year_section, "Access Granted")
                 notify_parent_task(student_no)
+                notify_parent_sms_task(student_no)
 
         QTimer.singleShot(2000, self.main.reset_verification_state)
 
@@ -55,8 +56,8 @@ class VerificationHandler:
 
         student = lookup_student(qr_value)
         if student:
-            name, program, year, section = student
-            self.main.update_ui_verified(qr_value, name, program, year, section, "QR Verified")
+            name, program, year_section = student
+            self.main.update_ui_verified(qr_value, name, program, year_section, "QR Verified")
             self.main.set_status("QR Verified", "#FFA500")
             self.main.camera_handler.start_camera()
             self.main.face_timeout_timer.start(10000)

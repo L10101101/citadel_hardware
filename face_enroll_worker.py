@@ -54,7 +54,7 @@ class FaceEnrollWorker(QThread):
                     x1, y1, x2, y2 = face_box
                     if last_box is not None:
                         movement = np.linalg.norm(np.subtract(face_box, last_box))
-                        if movement < 40:
+                        if movement < 25:
                             if still_start is None:
                                 still_start = now
                             elif now - still_start >= STILL_DURATION:

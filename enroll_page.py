@@ -4,7 +4,7 @@ import psycopg2
 from face_enroll_worker import FaceEnrollWorker
 from finger_enroll_thread import FingerEnrollWorker
 from marquee_label import FooterMarquee
-from utils import get_connection
+from db_utils import get_connection
 
 
 class EnrollPage:
@@ -188,23 +188,20 @@ class EnrollPage:
 
 
     def student_exists(self, student_no):
-        conn = get_connection()
+        conn, source = get_connection()
         cur = conn.cursor()
         cur.execute("SELECT 1 FROM students WHERE student_no = %s", (student_no,))
         found = cur.fetchone() is not None
         cur.close()
         conn.close()
+        print(f"[Enroll] Checked student in {source.upper()} database → {'FOUND' if found else 'NOT FOUND'}")
         return found
 
 
     def is_already_enrolled(self, student_no, mode):
-        conn = psycopg2.connect(
-            dbname="citadel_db",
-            user="postgres",
-            password="postgres",
-            host="127.0.0.1",
-            port=5432
-        )
+        from db_utils import get_connection
+
+        conn, source = get_connection()
         cur = conn.cursor()
 
         if mode == "face":
@@ -219,6 +216,8 @@ class EnrollPage:
 
         cur.close()
         conn.close()
+
+        print(f"[Enroll] Checked {mode.upper()} enrollment for {student_no} in {source.upper()} database → {'ENROLLED' if exists else 'NOT ENROLLED'}")
         return exists
 
 

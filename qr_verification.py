@@ -1,6 +1,5 @@
-import psycopg2
-import msvcrt
-from utils import get_connection
+import psycopg2, msvcrt
+from db_utils import get_connection
 
 
 def read_qr_code():
@@ -14,13 +13,25 @@ def read_qr_code():
 
 
 def verify_qr_in_db(qr_value):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT fullname FROM students WHERE student_no = %s", (qr_value,))
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
+    """Checks if QR/student_no exists in either cloud or local DB."""
+    try:
+        conn, source = get_connection()
+        cur = conn.cursor()
 
-    if row:
-        return True, row[0]
-    return False, None
+        cur.execute("SELECT 1 FROM students WHERE student_no = %s", (qr_value,))
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        exists = result is not None
+        print(f"[QR] Checked {qr_value} in {source.upper()} database → {'VALID' if exists else 'NOT FOUND'}")
+
+        return exists, source
+
+    except psycopg2.Error as e:
+        print(f"[QR] Database error: {e}")
+        return False, "error"
+
+    except Exception as e:
+        print(f"[QR] Unexpected error: {e}")
+        return False, "error"

@@ -5,7 +5,7 @@ import os
 from openvino.runtime import Core
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-from utils import get_connection
+from db_utils import get_connection
 
 
 load_dotenv()
@@ -56,9 +56,12 @@ def get_face(frame):
         (int(det[3] * w), int(det[4] * h), int(det[5] * w), int(det[6] * h), float(det[2]))
         for det in det_result if det[2] > CONF_THRESHOLD
     ]
+
     if not faces:
         return None
-    return max(faces, key=lambda f: f[4])[:4]
+
+    best_face = max(faces, key=lambda f: f[4] * ((f[2] - f[0]) * (f[3] - f[1])))
+    return best_face[:4]
 
 
 def extract_embedding(face_crop):
@@ -71,8 +74,10 @@ def extract_embedding(face_crop):
 def save_to_db(student_no, emb):
     emb_bytes = emb.tobytes()
     encrypted = cipher.encrypt(emb_bytes)
-    conn = get_connection()
+
+    conn, source = get_connection()
     cur = conn.cursor()
+
     cur.execute("""
         UPDATE students
         SET facial_recognition_data = %s,
@@ -85,5 +90,9 @@ def save_to_db(student_no, emb):
     cur.close()
     conn.close()
 
-    if not success:
-        raise ValueError(f"{student_no} not found")
+    if success:
+        print(f"[Enroll] Facial data saved successfully to {source.upper()} database ✅")
+    else:
+        print(f"[Enroll] Student {student_no} not found in {source.upper()} database ❌")
+        raise ValueError(f"{student_no} not found in {source.upper()} database")
+

@@ -1,22 +1,9 @@
 import psycopg2
 from datetime import datetime
-
-
-DB_CONFIG = {
-    "dbname": "citadel_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432
-}
-
-
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
-
+from db_utils import get_connection
 
 def lookup_student(student_no):
-    conn = get_connection()
+    conn, source = get_connection()  # ✅ unpack the tuple
     cur = conn.cursor()
     cur.execute("""
         SELECT s.fullname,
@@ -31,14 +18,24 @@ def lookup_student(student_no):
     row = cur.fetchone()
     cur.close()
     conn.close()
-    return row if row else None
+
+    if not row:
+        return None
+
+    name, program, year, section = row
+    year_section = f"{year}-{section}" if year and section else ""
+    return name, program, year_section
 
 
 def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
     try:
         now = datetime.now()
-        conn = get_connection()
+        conn, source = get_connection()
         cur = conn.cursor()
+
+        # Ensure timezone for the session
+        cur.execute("SET TIME ZONE 'Asia/Manila'")
+
         cur.execute("""
             SELECT timestamps
             FROM entry_logs
@@ -66,10 +63,14 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
             conn.close()
             return False
 
+        # Format timestamp to "MM/DD/YYYY hh:mm:ss AM/PM" (Asia/Manila)
+        formatted_ts = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+
+        # Insert formatted string timestamp
         cur.execute("""
             INSERT INTO entry_logs (student_no, timestamps, method_id)
-            VALUES (%s, NOW(), %s)
-        """, (student_no, method_id))
+            VALUES (%s, %s, %s)
+        """, (student_no, formatted_ts, method_id))
         conn.commit()
 
         if set_status:
@@ -78,9 +79,12 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
         cur.close()
         conn.close()
         last_logged[student_no] = now
+
+        print(f"[LOG] Recorded entry for {student_no} ({source.upper()}) at {formatted_ts}")
         return True
 
     except psycopg2.Error as e:
         if set_status:
             set_status("DB Error", "#FF6666")
+        print(f"[LOG ERROR] {e}")
         return False

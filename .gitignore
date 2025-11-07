@@ -4,3 +4,7 @@
 /__pycache__
 /debug_faces
 /venv
+/certs
+/models/intel/facial-landmarks-35-adas-0002
+/models/intel/head-pose-estimation-adas-0001
+/models/intel/depth-estimation-midas

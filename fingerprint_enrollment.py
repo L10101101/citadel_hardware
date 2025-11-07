@@ -4,8 +4,7 @@ from fingerprint_reader import FingerprintReader
 from time import sleep
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
-from utils import get_connection
-
+from db_utils import get_connection
 
 load_dotenv()
 MAX_CAPTURE_ATTEMPTS = 5
@@ -18,7 +17,7 @@ def encrypt_template(template: bytes) -> bytes:
 
 
 def save_to_db(student_no: str, template: bytes):
-    conn = get_connection()
+    conn, source = get_connection()  # ✅ unpack the tuple
     cur = conn.cursor()
 
     encrypted_template = encrypt_template(template)
@@ -34,11 +33,15 @@ def save_to_db(student_no: str, template: bytes):
     cur.close()
     conn.close()
 
+    print(f"[FINGERPRINT SAVE] Stored for {student_no} ({source.upper()})")
+
 
 def capture_fingerprint(reader: FingerprintReader) -> bytes:
     for attempt in range(1, MAX_CAPTURE_ATTEMPTS + 1):
         template = reader.capture_template()
         if template:
+            print(f"[FINGERPRINT] Capture success (attempt {attempt})")
             return template
+        print(f"[FINGERPRINT] Capture attempt {attempt} failed, retrying...")
         sleep(1)
-    raise RuntimeError("Failed")
+    raise RuntimeError("Failed to capture fingerprint after multiple attempts")

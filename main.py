@@ -7,6 +7,7 @@ from main_ui import Ui_Citadel
 from face_recognition import load_gallery
 from utils import lookup_student, log_to_entry_logs
 from async_email_notifier import notify_parent_task
+from async_sms_notifier import notify_parent_sms_task
 from finger_thread import FingerprintThread
 from camera_handler import CameraHandler
 from verification_handler import VerificationHandler
@@ -142,11 +143,12 @@ class MainWindow(QMainWindow, Ui_Citadel):
     def qr_verified_success(self, student_no, name):
         student = lookup_student(student_no)
         if student:
-            name, program, year, section = student
-            self.update_ui_verified(student_no, name, program, year, section, "Access Granted")
+            name, program, year_section = student
+            self.update_ui_verified(student_no, name, program, year_section, "Access Granted")
             self.set_status("Access Granted", "#77EE77")
             log_to_entry_logs(student_no, self.last_logged, self.set_status, method_id=1)
             notify_parent_task(student_no)
+            notify_parent_sms_task(student_no)
             self.inactivity_timer.start()
         else:
             self.set_status("Access Denied", "#FF6666")
@@ -155,13 +157,15 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
 
     # UI
-    def update_ui_verified(self, student_no, name, program, year, section, status):
+    def update_ui_verified(self, student_no, name, program, year_section, status):
         self.nameLabel.setText(name)
-        self.programLabel.setText(f"{program} {year}-{section}")
+        self.programLabel.setText(program)
+        self.yearSecLabel.setText(year_section)
         self.idLabel.setText(student_no)
-        self.entryLabel.setText(QDateTime.currentDateTime().toString("dddd | MMM d, yyyy | hh:mm AP"))
+        self.entryLabel.setText(
+            QDateTime.currentDateTime().toString("dddd | MMM d, yyyy | hh:mm AP")
+        )
         self.statusLabel.setText(status)
-    
 
     def set_status(self, text, color):
         self.statusLabel.setText(text)
@@ -198,6 +202,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.camera_handler.clear_camera_feed()
         self.nameLabel.setText("-----")
         self.programLabel.setText("-----")
+        self.yearSecLabel.setText("-----")
         self.idLabel.setText("-----")
         self.entryLabel.setText("-----")
 
