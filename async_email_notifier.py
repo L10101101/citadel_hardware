@@ -11,7 +11,6 @@ from psycopg2 import Error
 from db_utils import get_connection, has_internet
 
 
-# ===== CONFIGURATION =====
 SMTP_CONFIG = {
     "host": "smtp.gmail.com",
     "port": 587,
@@ -21,14 +20,12 @@ SMTP_CONFIG = {
 }
 
 
-# Logo sizes
 UCC_LOGO_WIDTH = 100
 UCC_LOGO_HEIGHT = 100
 LOGO_WIDTH = 120
 LOGO_HEIGHT = 120
 
 
-# ===== Helper functions =====
 def format_datetime(dt_string: str) -> tuple:
     try:
         dt = datetime.strptime(dt_string, "%Y-%m-%d %H:%M:%S")
@@ -47,7 +44,6 @@ def find_image(image_paths: list) -> str:
     return None
 
 
-# ===== Email sending function =====
 async def send_campus_notification(guardian_email: str, student_name: str, timestamp: str, notification_type: str = "entry"):
     formatted_date, formatted_time = format_datetime(timestamp)
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -76,7 +72,6 @@ async def send_campus_notification(guardian_email: str, student_name: str, times
     alt = MIMEMultipart("alternative")
     msg.attach(alt)
 
-    # Plain version
     plain = f"""{notification_title}
 
 Dear Parent/Guardian,
@@ -99,7 +94,6 @@ This is an automated notification. Please do not reply to this email.
 """
     alt.attach(MIMEText(plain, "plain"))
 
-    # HTML version
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>{notification_title}</title></head>
@@ -139,7 +133,6 @@ This is an automated notification. Please do not reply to this email.
 </table></td></tr></table></body></html>"""
     alt.attach(MIMEText(html, "html"))
 
-    # Attach images
     for cid, path in [("logo", logo_path), ("ucc_logo", ucc_logo_path)]:
         if path:
             try:
@@ -147,7 +140,7 @@ This is an automated notification. Please do not reply to this email.
                     img_data = f.read()
                     mime_type, _ = guess_type(path)
                     if not mime_type or not mime_type.startswith("image/"):
-                        print(f"[WARNING] Invalid image type for {path}")
+                        print(f"[WARNING] Invalid{path}")
                         continue
                     subtype = mime_type.split("/")[1]
                     img = MIMEImage(img_data, _subtype=subtype)
@@ -155,9 +148,8 @@ This is an automated notification. Please do not reply to this email.
                     img.add_header("Content-Disposition", "inline", filename=os.path.basename(path))
                     msg.attach(img)
             except Exception as e:
-                print(f"[WARNING] Failed to attach {cid}: {e}")
+                print(f"[WARNING] Failed {cid}: {e}")
 
-    # Send
     smtp = SMTP(hostname=SMTP_CONFIG["host"], port=SMTP_CONFIG["port"], start_tls=SMTP_CONFIG["tls"])
     await smtp.connect()
     await smtp.login(SMTP_CONFIG["user"], SMTP_CONFIG["password"])
@@ -165,11 +157,9 @@ This is an automated notification. Please do not reply to this email.
     await smtp.quit()
 
 
-# ===== Notify parent function =====
 async def notify_parent(student_no: str, notification_type: str = "entry"):
     if not has_internet():
-        print("[INFO] No internet connection. Skipping email notification.")
-        return  # exit early
+        return
 
     try:
         conn, source = get_connection()
@@ -184,12 +174,12 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
         conn.close()
 
         if not result:
-            print(f"[WARNING] No student found: {student_no}")
+            print(f"[WARNING] Not found {student_no}")
             return
 
         student_name, guardian_email = result
         if not guardian_email:
-            print(f"[WARNING] No guardian email for {student_name}")
+            print(f"[WARNING] No email {student_name}")
             return
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -199,7 +189,6 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
         print(f"[DB ERROR] {e}")
 
 
-# ===== Thread runners =====
 def notify_parent_task(student_no: str, notification_type: str = "entry"):
     def runner():
         asyncio.run(notify_parent(student_no, notification_type))

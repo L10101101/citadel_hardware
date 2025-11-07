@@ -49,6 +49,7 @@ class FingerprintThread(QThread):
             if not self.reader:
                 try:
                     self.reader = FingerprintReader()
+                    sleep(0.5) 
                 except Exception as e:
                     sleep(1)
                     continue

@@ -57,13 +57,13 @@ class VerificationHandler:
         student = lookup_student(qr_value)
         if student:
             name, program, year_section = student
-            self.main.update_ui_verified(qr_value, name, program, year_section, "QR Verified")
-            self.main.set_status("QR Verified", "#FFA500")
-            self.main.camera_handler.start_camera()
-            self.main.face_timeout_timer.start(10000)
         else:
-            self.main.set_status("Access Denied", "#FF6666")
+            name, program, year_section = "Unknown", "-", "-"
 
+        self.main.update_ui_verified(qr_value, name, program, year_section, "QR Verified")
+        self.main.set_status("QR Verified", "#FFA500")
+        self.main.camera_handler.start_camera()
+        self.main.face_timeout_timer.start(10000)
 
     def on_face_timeout(self):
         if self.main.verification_active and self.main.current_qr:

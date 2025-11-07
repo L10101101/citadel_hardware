@@ -4,7 +4,7 @@ import threading
 from twilio.rest import Client
 from db_utils import get_connection
 from dotenv import load_dotenv
-from datetime import datetime  # added
+from datetime import datetime
 
 load_dotenv()
 
@@ -21,7 +21,6 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 async def send_sms(guardian_number: str, student_name: str, action: str):
     try:
-        # Format timestamp
         timestamp = datetime.now().strftime("%A, %B %d, %Y %I:%M %p")
         message = f"Your child {student_name} has {action} the campus.\nTime: {timestamp}"
 
@@ -33,20 +32,17 @@ async def send_sms(guardian_number: str, student_name: str, action: str):
         if TWILIO_MESSAGING_SID:
             msg_params["messaging_service_sid"] = TWILIO_MESSAGING_SID
         else:
-            raise ValueError("No Twilio sender configured (phone or messaging SID).")
+            raise ValueError("Not Configured")
 
         msg = client.messages.create(**msg_params)
-        print(f"[SMS] Sent to {guardian_number}: SID={msg.sid}")
 
     except Exception as e:
-        print(f"[SMS ERROR] Failed to send to {guardian_number}: {e}")
+        print(f"[SMS ERROR] Failed {e}")
 
 
 async def notify_parent_sms(student_no: str, action: str = "entered"):
     try:
         conn, source = get_connection()
-        print(f"[DB] Using {source} database for student {student_no}")
-
         cur = conn.cursor()
         cur.execute("""
             SELECT fullname, guardian_contact
@@ -58,12 +54,12 @@ async def notify_parent_sms(student_no: str, action: str = "entered"):
         conn.close()
 
         if not result:
-            print(f"[WARNING] No student found: {student_no}")
+            print(f"[WARNING] Not Found {student_no}")
             return
 
         student_name, guardian_phone = result
         if not guardian_phone:
-            print(f"[WARNING] No guardian phone for {student_name}")
+            print(f"[WARNING] No Contact {student_name}")
             return
 
         if not guardian_phone.startswith("+"):

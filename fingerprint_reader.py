@@ -34,22 +34,17 @@ class FingerprintReader:
 
     def identify(self, template_bytes, threshold: int = 80):
         if not template_bytes:
-            print("[DEBUG] No fingerprint captured.")
             return None
 
         conn, source = get_connection()
         if not conn:
-            print("[DEBUG] Connection failed — cannot read fingerprints.")
             return None
-
-        print(f"[DEBUG] Connected to {source.upper()} database")
 
         cur = conn.cursor()
         try:
             cur.execute("SELECT student_no, template FROM fingerprints")
             records = cur.fetchall()
         except Exception as e:
-            print(f"[DEBUG] Database query failed: {e}")
             cur.close()
             conn.close()
             return None
@@ -58,10 +53,7 @@ class FingerprintReader:
         conn.close()
 
         if not records:
-            print(f"[DEBUG] No fingerprints found in {source} DB.")
             return None
-
-        print(f"[DEBUG] Retrieved {len(records)} fingerprint records from {source} DB.")
 
         for student_no, encrypted_template in records:
             try:
@@ -70,16 +62,13 @@ class FingerprintReader:
 
                 decrypted_template = cipher.decrypt(encrypted_template)
                 score = self.zk.DBMatch(template_bytes, decrypted_template)
-                print(f"[DEBUG] Compared with {student_no}: score={score}")
 
                 if score >= threshold:
-                    print(f"[DEBUG] Match found for {student_no} ✅")
                     return student_no
 
             except Exception as e:
-                print(f"[DEBUG] Error decrypting or matching {student_no}: {e}")
+                print(f"Error {e}")
 
-        print("[DEBUG] No matching fingerprint found.")
         return None
 
     def close(self):

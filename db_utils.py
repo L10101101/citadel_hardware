@@ -36,14 +36,11 @@ def get_connection():
     if has_internet():
         try:
             conn = psycopg2.connect(**CLOUD_DB)
-            print("[DB] Connected to CLOUD database ✅")
             return conn, "cloud"
         except Exception as e:
-            print("[DB] Cloud DB unreachable, switching to LOCAL. ❌")
             print("Error:", e)
     else:
-        print("[DB] No internet, using LOCAL database 🌐❌")
+        print("[DB] No Internet")
 
     conn = psycopg2.connect(**LOCAL_DB)
-    print("[DB] Connected to LOCAL database ✅")
     return conn, "local"

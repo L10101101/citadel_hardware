@@ -80,7 +80,6 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
         conn.close()
         last_logged[student_no] = now
 
-        print(f"[LOG] Recorded entry for {student_no} ({source.upper()}) at {formatted_ts}")
         return True
 
     except psycopg2.Error as e:

@@ -93,7 +93,7 @@ class FaceEnrollWorker(QThread):
                 except Exception as e:
                     self.finished.emit(False, f"Error {e}")
             elif self._running:
-                self.finished.emit(False, "Enrollment cancelled")
+                self.finished.emit(False, "Enrollment Cancelled")
 
     def stop(self):
         self._running = False

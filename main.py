@@ -140,18 +140,19 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.camera_handler.draw_face_box(box, ok)
 
 
-    def qr_verified_success(self, student_no, name):
+    def qr_verified_success(self, student_no, name=None):
         student = lookup_student(student_no)
         if student:
             name, program, year_section = student
-            self.update_ui_verified(student_no, name, program, year_section, "Access Granted")
-            self.set_status("Access Granted", "#77EE77")
-            log_to_entry_logs(student_no, self.last_logged, self.set_status, method_id=1)
-            notify_parent_task(student_no)
-            notify_parent_sms_task(student_no)
-            self.inactivity_timer.start()
         else:
-            self.set_status("Access Denied", "#FF6666")
+            name, program, year_section = "Unknown", "-", "-"
+
+        self.update_ui_verified(student_no, name, program, year_section, "Access Granted")
+        self.set_status("Access Granted", "#77EE77")
+        log_to_entry_logs(student_no, self.last_logged, self.set_status, method_id=1)
+        notify_parent_task(student_no)
+        notify_parent_sms_task(student_no)
+        self.inactivity_timer.start()
         self.hiddenInput.setEnabled(True)
         self.fingerprint_thread.activate()
 

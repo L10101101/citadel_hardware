@@ -26,7 +26,7 @@ class EnrollPage:
 
         if self.txtStudentNo:
             self.txtStudentNo.setReadOnly(True)
-            self.txtStudentNo.setPlaceholderText("Select enrollment type first...")
+            self.txtStudentNo.setPlaceholderText("Select Enrollment Type")
 
         if self.btnSubmit:
             self.btnSubmit.setEnabled(False)
@@ -40,7 +40,7 @@ class EnrollPage:
         if self.btnSubmit:
             self.btnSubmit.clicked.connect(self.start_enrollment)
 
-        self.set_status("Select enrollment type to start.", "orange")
+        self.set_status("Select Enrollment Type", "orange")
 
 
     def set_status(self, text: str, color: str):
@@ -128,7 +128,7 @@ class EnrollPage:
         student_no = self.txtStudentNo.text().strip() if self.txtStudentNo else ""
 
         if not student_no:
-            self.set_status("Please Enter Student No.", "red")
+            self.set_status("Enter Student No.", "red")
             return
 
         if not self.student_exists(student_no):
@@ -169,7 +169,7 @@ class EnrollPage:
             self.worker.start()
 
         else:
-            self.set_status("Please Select An Enrollment", "red")
+            self.set_status("Select Enrollment", "red")
 
 
     def set_inputs_enabled(self, enabled: bool):
@@ -194,7 +194,7 @@ class EnrollPage:
         found = cur.fetchone() is not None
         cur.close()
         conn.close()
-        print(f"[Enroll] Checked student in {source.upper()} database → {'FOUND' if found else 'NOT FOUND'}")
+        print(f"{'FOUND' if found else 'NOT FOUND'}")
         return found
 
 
@@ -217,7 +217,7 @@ class EnrollPage:
         cur.close()
         conn.close()
 
-        print(f"[Enroll] Checked {mode.upper()} enrollment for {student_no} in {source.upper()} database → {'ENROLLED' if exists else 'NOT ENROLLED'}")
+        print(f"{'ENROLLED' if exists else 'NOT ENROLLED'}")
         return exists
 
 
@@ -229,7 +229,7 @@ class EnrollPage:
         if self.txtStudentNo:
             self.txtStudentNo.clear()
             self.txtStudentNo.setReadOnly(True)
-            self.txtStudentNo.setPlaceholderText("Select enrollment type first...")
+            self.txtStudentNo.setPlaceholderText("Select Enrollment Type")
 
         self.set_inputs_enabled(True)
 

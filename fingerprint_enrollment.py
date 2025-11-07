@@ -33,15 +33,11 @@ def save_to_db(student_no: str, template: bytes):
     cur.close()
     conn.close()
 
-    print(f"[FINGERPRINT SAVE] Stored for {student_no} ({source.upper()})")
-
 
 def capture_fingerprint(reader: FingerprintReader) -> bytes:
     for attempt in range(1, MAX_CAPTURE_ATTEMPTS + 1):
         template = reader.capture_template()
         if template:
-            print(f"[FINGERPRINT] Capture success (attempt {attempt})")
             return template
-        print(f"[FINGERPRINT] Capture attempt {attempt} failed, retrying...")
         sleep(1)
-    raise RuntimeError("Failed to capture fingerprint after multiple attempts")
+    raise RuntimeError("Failed")

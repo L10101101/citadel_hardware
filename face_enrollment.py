@@ -91,8 +91,8 @@ def save_to_db(student_no, emb):
     conn.close()
 
     if success:
-        print(f"[Enroll] Facial data saved successfully to {source.upper()} database ✅")
+        print(f"Saved")
     else:
-        print(f"[Enroll] Student {student_no} not found in {source.upper()} database ❌")
-        raise ValueError(f"{student_no} not found in {source.upper()} database")
+        print(f"Student {student_no} Not Found")
+        raise ValueError(f"{student_no} Not Found")
 
