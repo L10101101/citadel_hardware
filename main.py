@@ -5,9 +5,10 @@ from PyQt6.QtGui import QPixmap
 
 from main_ui import Ui_Citadel
 from face_recognition import load_gallery
-from utils import lookup_student, log_to_entry_logs
+from utils import lookup_student, log_attendance
 from async_email_notifier import notify_parent_task
 from async_sms_notifier import notify_parent_sms_task
+from sync_worker import start_sync_worker
 from finger_thread import FingerprintThread
 from camera_handler import CameraHandler
 from verification_handler import VerificationHandler
@@ -30,6 +31,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.current_qr = None
         self._suppress_feed = False
         self.last_logged = {}
+        start_sync_worker(interval=10)
         self.footer_marquee = FooterMarquee(self.footerLabel, speed=35, padding=40, left_to_right=True)
 
         # Tabs
@@ -147,7 +149,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
         self.update_ui_verified(student_no, name, program, year_section, "Access Granted")
         self.set_status("Access Granted", "#77EE77")
-        log_to_entry_logs(
+        log_attendance(
             student_no,
             last_logged=self.last_logged,
             set_status=self.set_status,

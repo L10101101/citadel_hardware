@@ -18,7 +18,7 @@ CLOUD_DB = {
     "password": os.getenv("CLOUD_PASSWORD"),
     "host": os.getenv("CLOUD_HOST"),
     "port": int(os.getenv("CLOUD_PORT")),
-    "sslmode": "verify-ca",
+    "sslmode": "disable",
     "sslrootcert": os.getenv("SSLROOTCERT"),
     "sslcert": os.getenv("SSLCERT"),
     "sslkey": os.getenv("SSLKEY"),
@@ -37,8 +37,10 @@ def get_connection():
         try:
             conn = psycopg2.connect(**CLOUD_DB)
             return conn, "cloud"
+        except psycopg2.OperationalError as e:
+            print("[DB] Cloud connection failed. Details:", e)
         except Exception as e:
-            print("Error:", e)
+            print("[DB] DB error:", e)
     else:
         print("[DB] No Internet")
 

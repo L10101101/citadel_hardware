@@ -1,9 +1,9 @@
-import psycopg2
+import json
 from datetime import datetime
 from db_utils import get_connection
 
 def lookup_student(student_no):
-    conn, _ = get_connection()
+    conn, source = get_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT s.fullname,
@@ -27,40 +27,14 @@ def lookup_student(student_no):
     return name, program, year_section
 
 
-def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
+def log_attendance(student_no, last_logged=None, set_status=None, method_id=None):
     try:
         now = datetime.now()
+
         conn, _ = get_connection()
         cur = conn.cursor()
 
         cur.execute("SET TIME ZONE 'Asia/Manila'")
-
-        cur.execute("""
-            SELECT timestamps
-            FROM entry_logs
-            WHERE student_no = %s
-            ORDER BY timestamps DESC
-            LIMIT 1
-        """, (student_no,))
-        row_entry = cur.fetchone()
-        last_entry_ts = row_entry[0] if row_entry else None
-
-        cur.execute("""
-            SELECT timestamps
-            FROM exit_logs
-            WHERE student_no = %s
-            ORDER BY timestamps DESC
-            LIMIT 1
-        """, (student_no,))
-        row_exit = cur.fetchone()
-        last_exit_ts = row_exit[0] if row_exit else None
-
-        if last_exit_ts and last_entry_ts and last_entry_ts >= last_exit_ts:
-            if set_status:
-                set_status("Already Logged Entry", "#FF6666")
-            cur.close()
-            conn.close()
-            return False
 
         student = lookup_student(student_no)
         if not student:
@@ -70,83 +44,67 @@ def log_to_entry_logs(student_no, last_logged, set_status=None, method_id=None):
             conn.close()
             return False
 
-        formatted_ts = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
         cur.execute("""
-            INSERT INTO entry_logs (student_no, timestamps, method_id)
-            VALUES (%s, %s, %s)
-        """, (student_no, formatted_ts, method_id))
+            SELECT id, time_in, time_out
+            FROM attendance_logs
+            WHERE student_no = %s
+            ORDER BY time_in DESC
+            LIMIT 1
+        """, (student_no,))
+        latest = cur.fetchone()
+
+        record_data = {
+            "student_no": student_no,
+            "time_in": None,
+            "time_out": None,
+            "method_id": method_id,
+        }
+
+        if latest:
+            log_id, time_in, time_out = latest
+            if time_in and not time_out:
+                cur.execute("UPDATE attendance_logs SET time_out = %s WHERE id = %s", (now, log_id))
+                record_data["time_out"] = now.isoformat()
+                operation = "update"
+            else:
+                cur.execute("""
+                    INSERT INTO attendance_logs (student_no, time_in, method_id)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                """, (student_no, now, method_id))
+                log_id = cur.fetchone()[0]
+                record_data["time_in"] = now.isoformat()
+                operation = "insert"
+        else:
+            cur.execute("""
+                INSERT INTO attendance_logs (student_no, time_in, method_id)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            """, (student_no, now, method_id))
+            log_id = cur.fetchone()[0]
+            record_data["time_in"] = now.isoformat()
+            operation = "insert"
+
+        conn.commit()
+
+        cur.execute("""
+            INSERT INTO sync_queue (table_name, record_id, operation, payload, synced)
+            VALUES ('attendance_logs', %s, %s, %s, 0)
+        """, (log_id, operation, json.dumps(record_data)))
         conn.commit()
 
         if set_status:
-            set_status("Access Granted", "#77EE77")
+            set_status("Attendance Recorded", "#77EE77")
+
+        if last_logged is not None:
+            last_logged[student_no] = now
 
         cur.close()
         conn.close()
-        return True
-
-    except psycopg2.Error as e:
-        if set_status:
-            set_status("DB Error", "#FF6666")
-        print("Entry log error:", e)
-        return False
-
-    
-def log_to_exit_logs(student_no, last_logged, set_status=None, method_id=None):
-    try:
-        now = datetime.now()
-        conn, _ = get_connection()
-        cur = conn.cursor()
-
-        cur.execute("""
-            SELECT timestamps
-            FROM entry_logs
-            WHERE student_no = %s
-            ORDER BY timestamps DESC
-            LIMIT 1
-        """, (student_no,))
-        row_entry = cur.fetchone()
-        last_entry_ts = row_entry[0] if row_entry else None
-
-        cur.execute("""
-            SELECT timestamps
-            FROM exit_logs
-            WHERE student_no = %s
-            ORDER BY timestamps DESC
-            LIMIT 1
-        """, (student_no,))
-        row_exit = cur.fetchone()
-        last_exit_ts = row_exit[0] if row_exit else None
-
-        if last_entry_ts is None:
-            if set_status:
-                set_status("No Entry Found", "#FF6666")
-            cur.close()
-            conn.close()
-            return False
-
-        if last_exit_ts and last_exit_ts >= last_entry_ts:
-            if set_status:
-                set_status("Already Logged Exit", "#FF6666")
-            cur.close()
-            conn.close()
-            return False
-
-        cur.execute("""
-            INSERT INTO exit_logs (student_no, timestamps, method_id)
-            VALUES (%s, %s, %s)
-        """, (student_no, now, method_id))
-        conn.commit()
-
-        if set_status:
-            set_status("Exit Logged", "#77EE77")
-
-        cur.close()
-        conn.close()
-        last_logged[student_no] = now
         return True
 
     except Exception as e:
         if set_status:
             set_status("DB Error", "#FF6666")
-        print("Exit log error:", e)
+        print("Attendance log error:", e)
         return False
