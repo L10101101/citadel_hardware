@@ -1,8 +1,10 @@
 from PyQt6.QtCore import QTimer
 from qr_verification import verify_qr_in_db
-from utils import lookup_student, log_attendance
+from utils import lookup_student, log_entry
 from async_email_notifier import notify_parent_task
 from async_sms_notifier import notify_parent_sms_task
+from db_utils import get_connection
+
 
 class VerificationHandler:
     def __init__(self, main_window):
@@ -20,11 +22,10 @@ class VerificationHandler:
             QTimer.singleShot(2000, self.main.reset_verification_state)
             return
 
-        success = log_attendance(
+        success = log_entry(
             student_no,
-            last_logged=self.main.last_logged,
-            set_status=self.main.set_status,
-            method_id=2
+            method_id=2,
+            set_status=self.main.set_status
         )
 
         if success:

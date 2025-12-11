@@ -1,20 +1,19 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLineEdit, QLabel, QGraphicsOpacityEffect
-from PyQt6.QtCore import Qt, QTimer, QDateTime
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import QTimer, QDateTime
+from PyQt6.QtGui import QAction
 
 from main_ui import Ui_Citadel
 from face_recognition import load_gallery
-from utils import lookup_student, log_attendance
+from utils import lookup_student, log_entry
 from async_email_notifier import notify_parent_task
 from async_sms_notifier import notify_parent_sms_task
-from sync_worker import start_sync_worker
 from finger_thread import FingerprintThread
 from camera_handler import CameraHandler
 from verification_handler import VerificationHandler
 from marquee_label import FooterMarquee
+from exit_page import ExitPage
 from enroll_page import EnrollPage
-
 
 class MainWindow(QMainWindow, Ui_Citadel):
     def __init__(self):
@@ -27,21 +26,34 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
         # State
         self.reset_info()
+        self.active_action = None
         self.verification_active = False
         self.current_qr = None
         self._suppress_feed = False
         self.last_logged = {}
-        start_sync_worker(interval=10)
-        self.footer_marquee = FooterMarquee(self.footerLabel, speed=35, padding=40, left_to_right=True)
 
-        # Tabs
+        # Footer
+        self.footer_marquee1 = FooterMarquee(self.footerLabel, speed=35, padding=40, left_to_right=True)
+        self.footer_marquee2 = FooterMarquee(self.footerLabel_2, speed=35, padding=40, left_to_right=True)
+        self.footer_marquee3 = FooterMarquee(self.footerLabelExit, speed=35, padding=40, left_to_right=True)
+
+        # Main tab
         self.actionMain = self.menuBar.addAction("Main")
         self.actionMain.triggered.connect(lambda: self.show_page("main"))
-        self.enroll_logic = EnrollPage(self.page_enroll)
+
+        # Exit tab
+        self.actionExit = self.menuBar.addAction("Exit")
+        self.actionExit.triggered.connect(lambda: self.show_page("exit"))
+        self.exit_page = ExitPage(self.page_exit, main_window=self)
+
+        # Enroll tab
         self.actionEnroll = self.menuBar.addAction("Enroll")
         self.actionEnroll.triggered.connect(lambda: self.show_page("enroll"))
+        self.enroll_page = EnrollPage(self.page_enroll, main_window=self)
+
+        # Settings tab
         self.actionSettings = self.menuBar.addAction("Settings")
-        self.actionSettings.triggered.connect(lambda: self.stackedWidget.setCurrentWidget(self.page_settings))
+        self.actionSettings.triggered.connect(lambda: self.show_page("settings"))
 
         # Threads
         self.fingerprint_thread = FingerprintThread()
@@ -79,51 +91,48 @@ class MainWindow(QMainWindow, Ui_Citadel):
         # Load face gallery
         self.gallery = load_gallery()
 
-        # Background Image
-        self.overlay_image = QLabel(self)
-        self.overlay_image.setPixmap(QPixmap("./gui/assets/building.png").scaled(
-            400, 400, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-        ))
-        self.overlay_image.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.overlay_image.setStyleSheet("background: transparent; border: none;")
-        self.overlay_image.resize(400, 400)
-        self.overlay_image.move(self.width() - 200, self.height() - 200)
-        opacity_effect = QGraphicsOpacityEffect()
-        opacity_effect.setOpacity(0.75)
-        self.overlay_image.setGraphicsEffect(opacity_effect)
-        self.overlay_image.show()
-
 
     # Reset
     def show_page(self, page_name):
+        # Stop enrollment if active
         if hasattr(self, "enroll_logic") and self.enroll_logic:
             self.enroll_logic.stop_enrollment()
 
+        # Deactivate Main page
+        self.hiddenInput.setEnabled(False)
+        self.hiddenInput.clearFocus()
+        self.fingerprint_thread.deactivate()
+
+        # Main page
         if page_name == "main":
             self.stackedWidget.setCurrentWidget(self.page_main)
+            self.set_active_tab(self.actionMain)
+            self.fingerprint_thread.activate()
+            self.hiddenInput.setEnabled(True)
+            self.hiddenInput.setFocus()
+            self.reset_verification_state()
 
-            if hasattr(self, "fingerprint_thread"):
-                self.fingerprint_thread.activate()
+        # Exit page
+        elif page_name == "exit":
+            self.stackedWidget.setCurrentWidget(self.page_exit)
+            self.exit_page.activate()
+            self.hiddenInput.setEnabled(False)
+            self.exit_page.reset_verification_state_exit()
 
-            try:
-                from face_recognition import reset_models, load_gallery
-                reset_models()
-                self.gallery = load_gallery(force_reload=True)
-
-                self.camera_handler.stop_camera()
-                self.camera_handler._display_bgr = None
-                self.camera_handler._display_info = None
-
-                self.current_qr = None  
-
-            except Exception as e:
-                print(f"{e}")
-
+        # Enroll page
         elif page_name == "enroll":
             self.stackedWidget.setCurrentWidget(self.page_enroll)
+            self.hiddenInput.setEnabled(False)
+            self.reset_verification_state()
 
-        else:
-            self.stackedWidget.setCurrentWidget(self.pages.get(page_name, self.page_main))
+        # Settings page
+        elif page_name == "settings":
+            self.stackedWidget.setCurrentWidget(self.page_settings)
+
+    def update_datetime(self):
+        self.dateTimeLabel.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
+        self.dateTimeLabel_2.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
+        self.dateTimeLabelExit.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
 
 
     def on_face_result(self, ok, info, box):
@@ -149,11 +158,10 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
         self.update_ui_verified(student_no, name, program, year_section, "Access Granted")
         self.set_status("Access Granted", "#77EE77")
-        log_attendance(
+        log_entry(
             student_no,
-            last_logged=self.last_logged,
+            method_id=1,
             set_status=self.set_status,
-            method_id=1
         )
 
         notify_parent_task(student_no)
@@ -183,12 +191,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
             border-radius: 10px;
             padding: 5px;
         """)
-    
-
-    def resizeEvent(self, event):
-        self.overlay_image.move(self.width() - 180, self.height() - 250)
-        super().resizeEvent(event)
-
 
     # Misc
     def start_inactivity_timer(self):
@@ -207,22 +209,17 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
     def reset_info(self):
         self.camera_handler.clear_camera_feed()
-        self.nameLabel.setText("-----")
-        self.programLabel.setText("-----")
-        self.yearSecLabel.setText("-----")
-        self.idLabel.setText("-----")
-        self.entryLabel.setText("-----")
+        self.nameLabel.setText("Name")
+        self.idLabel.setText("Student No.")
+        self.programLabel.setText("Program")
+        self.yearSecLabel.setText("Year and Section")
+        self.entryLabel.setText("Time")
 
 
     def eventFilter(self, obj, event):
         if self.stackedWidget.currentWidget() == self.page_main:
             self.hiddenInput.setFocus()
         return super().eventFilter(obj, event)
-
-
-    def update_datetime(self):
-        self.dateTimeLabel.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
-        self.dateTimeLabel_2.setText(QDateTime.currentDateTime().toString("MMMM dd, yyyy | hh:mm:ss AP"))
 
 
     def closeEvent(self, event):

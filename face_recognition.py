@@ -52,7 +52,7 @@ def load_gallery(force_reload=False):
         return _gallery_cache
 
     try:
-        conn, _ = get_connection()
+        conn, source = get_connection("local")
         cur = conn.cursor()
         cur.execute("""
             SELECT student_no, facial_recognition_data

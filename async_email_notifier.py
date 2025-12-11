@@ -158,11 +158,8 @@ This is an automated notification. Please do not reply to this email.
 
 
 async def notify_parent(student_no: str, notification_type: str = "entry"):
-    if not has_internet():
-        return
-
     try:
-        conn, _ = get_connection()
+        conn, source = get_connection("cloud")
         cur = conn.cursor()
         cur.execute("""
             SELECT fullname, guardian_email

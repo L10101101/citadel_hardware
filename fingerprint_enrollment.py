@@ -17,7 +17,7 @@ def encrypt_template(template: bytes) -> bytes:
 
 
 def save_to_db(student_no: str, template: bytes):
-    conn, _ = get_connection()
+    conn, source = get_connection("cloud")
     cur = conn.cursor()
 
     encrypted_template = encrypt_template(template)

@@ -75,7 +75,7 @@ def save_to_db(student_no, emb):
     emb_bytes = emb.tobytes()
     encrypted = cipher.encrypt(emb_bytes)
 
-    conn, _ = get_connection()
+    conn, source = get_connection("cloud")
     cur = conn.cursor()
 
     cur.execute("""

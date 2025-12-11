@@ -36,7 +36,7 @@ class FingerprintReader:
         if not template_bytes:
             return None
 
-        conn, _ = get_connection()
+        conn, source = get_connection("local")
         if not conn:
             return None
 

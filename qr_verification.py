@@ -14,7 +14,7 @@ def read_qr_code():
 
 def verify_qr_in_db(qr_value):
     try:
-        conn, _ = get_connection()
+        conn, source = get_connection("local")
         cur = conn.cursor()
 
         cur.execute("SELECT 1 FROM students WHERE student_no = %s", (qr_value,))
@@ -24,7 +24,7 @@ def verify_qr_in_db(qr_value):
 
         exists = result is not None
 
-        return exists, _
+        return exists, source
 
     except psycopg2.Error as e:
         return False, "error"

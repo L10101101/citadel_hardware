@@ -1,6 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
 from PyQt6.QtCore import Qt, QTimer
-import psycopg2
 from face_enroll_worker import FaceEnrollWorker
 from finger_enroll_thread import FingerEnrollWorker
 from marquee_label import FooterMarquee
@@ -15,14 +14,13 @@ class EnrollPage:
         self._hidden_input = None
         self._hidden_input_prev_policy = None
         self.main = main_window
-        self.footer_marquee = None
 
+        # Widgets
         self.btnFace = self.page.findChild(QPushButton, "btnFace")
         self.btnFinger = self.page.findChild(QPushButton, "btnFinger")
         self.btnSubmit = self.page.findChild(QPushButton, "btnSubmit")
         self.txtStudentNo = self.page.findChild(QLineEdit, "txtStudentNo")
         self.lblStatus = self.page.findChild(QLabel, "lblStatus")
-        self.footerLabel_2 = self.page.findChild(QLabel, "footerLabel_2")
 
         if self.txtStudentNo:
             self.txtStudentNo.setReadOnly(True)
@@ -31,8 +29,6 @@ class EnrollPage:
         if self.btnSubmit:
             self.btnSubmit.setEnabled(False)
 
-        self.init_footer_marquee()
-
         if self.btnFace:
             self.btnFace.clicked.connect(lambda: self.select_mode("face"))
         if self.btnFinger:
@@ -40,7 +36,7 @@ class EnrollPage:
         if self.btnSubmit:
             self.btnSubmit.clicked.connect(self.start_enrollment)
 
-        self.set_status("Select Enrollment Type", "#FFBF66")
+        self.set_status("Select Enrollment Type", "orange")
 
 
     def set_status(self, text: str, color: str):
@@ -49,13 +45,6 @@ class EnrollPage:
             self.lblStatus.setStyleSheet(
                 f"color: white; background-color: {color}; font-weight: bold; padding: 4px; border-radius: 4px;"
             )
-
-
-    def init_footer_marquee(self):
-        self.footer_marquee = FooterMarquee(
-            self.footerLabel_2, speed=35, padding=40, left_to_right=True
-        )
-
 
     def _locate_hidden_input(self):
         if self._hidden_input:
@@ -100,10 +89,10 @@ class EnrollPage:
             self.btnSubmit.setEnabled(True)
 
         self.set_status(
-            "Facial enrollment selected." 
+            "Facial enrollment selected" 
             if mode == "face" 
-            else "Fingerprint enrollment selected.",
-            "#FFBF66"
+            else "Fingerprint enrollment selected",
+            "orange"
         )
     
 
@@ -128,19 +117,19 @@ class EnrollPage:
         student_no = self.txtStudentNo.text().strip() if self.txtStudentNo else ""
 
         if not student_no:
-            self.set_status("Enter Student No.", "#FF6666")
+            self.set_status("Enter Student No.", "red")
             return
 
         if not self.student_exists(student_no):
-            self.set_status(f"Student {student_no} Not Found", "#FF6666")
+            self.set_status(f"Student {student_no} Not Found", "red")
             return
 
         if self.selected_mode == "face" and self.is_already_enrolled(student_no, "face"):
-            self.set_status(f"Student {student_no} Has Face Record", "#FF6666")
+            self.set_status(f"Student {student_no} Has Face Record", "red")
             return
 
         if self.selected_mode == "finger" and self.is_already_enrolled(student_no, "finger"):
-            self.set_status(f"Student {student_no} Has Fingerprint Record", "#FF6666")
+            self.set_status(f"Student {student_no} Has Fingerprint Record", "red")
             return
 
         self.set_inputs_enabled(False)
@@ -153,7 +142,7 @@ class EnrollPage:
             self.worker = None
 
         if self.selected_mode == "face":
-            self.set_status("Starting Facial Enrollment", "#FFBF66")
+            self.set_status("Starting Facial Enrollment", "orange")
             camera_label = self.page.findChild(QLabel, "cameraFeed_2")
             self.worker = FaceEnrollWorker(student_no, label_widget=camera_label)
             self.worker.frameReady.connect(self.update_camera_feed)
@@ -163,13 +152,13 @@ class EnrollPage:
         elif self.selected_mode == "finger":
             if hasattr(wnd, "fingerprint_thread"):
                 wnd.fingerprint_thread.deactivate()
-            self.set_status("Starting Fingerprint Enrollment", "#FFBF66")
+            self.set_status("Starting Fingerprint Enrollment", "orange")
             self.worker = FingerEnrollWorker(student_no)
             self.worker.finished.connect(self.on_enroll_done)
             self.worker.start()
 
         else:
-            self.set_status("Select Enrollment", "#FF6666")
+            self.set_status("Select Enrollment", "red")
 
 
     def set_inputs_enabled(self, enabled: bool):
@@ -188,7 +177,7 @@ class EnrollPage:
 
 
     def student_exists(self, student_no):
-        conn, _ = get_connection()
+        conn, source = get_connection("local")
         cur = conn.cursor()
         cur.execute("SELECT 1 FROM students WHERE student_no = %s", (student_no,))
         found = cur.fetchone() is not None
@@ -201,7 +190,7 @@ class EnrollPage:
     def is_already_enrolled(self, student_no, mode):
         from db_utils import get_connection
 
-        conn, _ = get_connection()
+        conn, source = get_connection("local")
         cur = conn.cursor()
 
         if mode == "face":
