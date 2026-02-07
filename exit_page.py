@@ -1,7 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QLineEdit, QGraphicsOpacityEffect, QLabel
-from PyQt6.QtCore import QTimer, QDateTime, Qt
+from PyQt6.QtWidgets import QWidget, QLineEdit, QLabel
+from PyQt6.QtCore import QTimer, QDateTime
 from PyQt6.QtGui import QPixmap
-
 from finger_thread import FingerprintThread
 from marquee_label import FooterMarquee
 from exit_verification_handler import ExitVerificationHandler
@@ -10,54 +9,39 @@ class ExitPage:
     def __init__(self, page_exit: QWidget, main_window=None):
         self.page = page_exit
         self.main = main_window
-
-        # Handler
         self.verification_handler = ExitVerificationHandler(self)
-
-        # State
         self.verification_active = False
         self.current_qr = None
         self.last_logged = {}
 
-        # Widgets
         self.statusLabelExit = self.page.findChild(QLabel, "statusLabelExit")
         self.entryLabelExit = self.page.findChild(QLabel, "entryLabelExit")
         self.nameLabelExit = self.page.findChild(QLabel, "nameLabelExit")
         self.programLabelExit = self.page.findChild(QLabel, "programLabelExit")
         self.idLabelExit = self.page.findChild(QLabel, "idLabelExit")
         self.yearSecLabelExit = self.page.findChild(QLabel, "yearSecLabelExit")
+        self.cameraFeedExit = self.page.findChild(QLabel, "cameraFeedExit")
 
-        # QR input
         self.hiddenInput = QLineEdit(self.page)
         self.hiddenInput.setGeometry(-100, -100, 10, 10)
         self.hiddenInput.returnPressed.connect(
             lambda: self.verification_handler.on_qr_input_received(self.hiddenInput.text())
         )
 
-        # Fingerprint thread
         self.fingerprint_thread = FingerprintThread()
         self.fingerprint_thread.fingerprintDetected.connect(
             self.verification_handler.fingerprint_verified
         )
         self.fingerprint_thread.start()
 
-        # Timers
         self.inactivity_timer = QTimer()
         self.inactivity_timer.setInterval(2000)
         QTimer.singleShot(500, self.start_inactivity_timer_exit)
-
         self.time_timer = QTimer()
         self.time_timer.start(1000)
-
-        # Footer marquee
         self.footer_marquee = FooterMarquee(self.page.findChild(QLabel, "footerLabelExit"))
-
-        # Initialize page info
         self.reset_info_exit()
 
-    # -------------------
-    # Page activation/deactivation
-    # -------------------
     def activate(self):
         self.hiddenInput.setEnabled(True)
         self.hiddenInput.setFocus()
@@ -67,9 +51,6 @@ class ExitPage:
         self.hiddenInput.setEnabled(False)
         self.fingerprint_thread.deactivate()
 
-    # -------------------
-    # UI updates
-    # -------------------
     def update_ui_verified(self, student_no, name, program, year_section, status):
         self.nameLabelExit.setText(name)
         self.programLabelExit.setText(program)
@@ -87,15 +68,22 @@ class ExitPage:
             border-radius: 10px;
             padding: 5px;
         """)
+        self._set_camera_feed_exit_background(color)
 
-    # -------------------
-    # Timers / reset
-    # -------------------
+    def _set_camera_feed_exit_background(self, color):
+        """Update exit camera feed background color to match status (shows in letterboxing, does not cover video)."""
+        if hasattr(self, "cameraFeedExit") and self.cameraFeedExit:
+            self.cameraFeedExit.setStyleSheet(f"""
+                background-color: {color};
+                border-radius: 20px;
+            """)
+
     def start_inactivity_timer_exit(self):
         self.inactivity_timer.start()
         self.set_status_exit("Ready", "#FFBF66")
 
     def reset_info_exit(self):
+        self.clear_camera_feed_exit()
         self.nameLabelExit.setText("Name")
         self.programLabelExit.setText("Program")
         self.yearSecLabelExit.setText("Year and Section")
@@ -110,15 +98,12 @@ class ExitPage:
         self.hiddenInput.setFocus()
         self.fingerprint_thread.activate()
 
-    # -------------------
-    # Overlay / resize
-    # -------------------
-    def resize(self):
-        self.overlay_image.move(self.page.width() - 180, self.page.height() - 250)
+    def clear_camera_feed_exit(self):
+        from utils import resource_path
+        pixmap = QPixmap(resource_path("gui/assets/user.png"))
+        self.cameraFeedExit.setPixmap(pixmap)
+        self._set_camera_feed_exit_background("#FFBF66")  # Ready color
 
-    # -------------------
-    # Shutdown
-    # -------------------
     def shutdown(self):
         if getattr(self, 'fingerprint_thread', None):
             self.fingerprint_thread.stop()

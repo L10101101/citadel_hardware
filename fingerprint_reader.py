@@ -1,23 +1,21 @@
-import os
 from time import sleep
 from pyzkfp import ZKFP2
 from cryptography.fernet import Fernet
-from dotenv import load_dotenv
 from db_utils import get_connection
+from config_store import get_fernet_key
 
-load_dotenv()
-FERNET_KEY = os.getenv("CRYPT_FERNET_KEY")
-cipher = Fernet(FERNET_KEY)
-
+def _get_cipher():
+    key = get_fernet_key()
+    if not key:
+        raise ValueError("Fernet key not configured.")
+    return Fernet(key.encode() if isinstance(key, str) else key)
 
 class FingerprintReader:
     def __init__(self):
         self.zk = ZKFP2()
         self.zk.Init()
-
         if self.zk.GetDeviceCount() <= 0:
             raise RuntimeError("Device Missing")
-
         self.dev_handle = self.zk.OpenDevice()
 
     def capture_template(self, max_attempts=5):
@@ -39,7 +37,6 @@ class FingerprintReader:
         conn, source = get_connection("local")
         if not conn:
             return None
-
         cur = conn.cursor()
         try:
             cur.execute("SELECT student_no, template FROM fingerprints")
@@ -48,24 +45,21 @@ class FingerprintReader:
             cur.close()
             conn.close()
             return None
-
         cur.close()
         conn.close()
 
         if not records:
             return None
 
+        cipher = _get_cipher()
         for student_no, encrypted_template in records:
             try:
                 if isinstance(encrypted_template, memoryview):
                     encrypted_template = encrypted_template.tobytes()
-
                 decrypted_template = cipher.decrypt(encrypted_template)
                 score = self.zk.DBMatch(template_bytes, decrypted_template)
-
                 if score >= threshold:
                     return student_no
-
             except Exception as e:
                 print(f"Error {e}")
 
@@ -74,5 +68,5 @@ class FingerprintReader:
     def close(self):
         if self.dev_handle:
             self.zk.CloseDevice()
-            self.dev_handle = None
+        self.dev_handle = None
         self.zk.Terminate()

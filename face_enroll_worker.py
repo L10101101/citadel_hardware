@@ -1,8 +1,9 @@
-from PyQt6.QtCore import QThread, pyqtSignal
 import cv2
 import numpy as np
+
 from time import time
-from face_enrollment import extract_embedding, save_to_db, open_camera, get_face, STILL_DURATION
+from PyQt6.QtCore import QThread, pyqtSignal
+from face_enrollment import extract_embedding, save_to_cloud, open_camera, get_face, STILL_DURATION
 
 class FaceEnrollWorker(QThread):
     finished = pyqtSignal(bool, str)
@@ -16,10 +17,12 @@ class FaceEnrollWorker(QThread):
         self.cap = None
 
     def run(self):
+        face_crop = None
+        error_msg = None
         try:
             self.cap = open_camera()
             last_box, face_box = None, None
-            still_start, face_crop = None, None
+            still_start = None
             frame_count = 0
             DETECT_INTERVAL = 3
             last_detect_time = 0
@@ -78,17 +81,25 @@ class FaceEnrollWorker(QThread):
                 self.msleep(5)
 
         except Exception as e:
-            self.finished.emit(False, f"Error: {e}")
+            msg = str(e)
+            if "Cannot open" in msg:
+                error_msg = "Camera not detected"
+            else:
+                error_msg = f"Error: {e}"
 
         finally:
             if self.cap:
                 self.cap.release()
                 self.cap = None
 
+            if error_msg:
+                self.finished.emit(False, error_msg)
+                return
+
             if face_crop is not None:
                 try:
                     emb = extract_embedding(face_crop)
-                    save_to_db(self.student_no, emb)
+                    save_to_cloud(self.student_no, emb)
                     self.finished.emit(True, "Success")
                 except Exception as e:
                     self.finished.emit(False, f"Error {e}")

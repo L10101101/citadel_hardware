@@ -1,5 +1,7 @@
 from PyQt6.QtCore import QTimer
 from utils import lookup_student, log_exit
+from async_email_notifier import notify_exit
+from async_sms_notifier import notify_exit_sms
 
 class ExitVerificationHandler:
     def __init__(self, exit_page):
@@ -11,7 +13,7 @@ class ExitVerificationHandler:
         self.exit_page.verification_active = True
 
         if not student_no:
-            self.exit_page.set_status_exit("Not Registered", "#FF6666")
+            self.exit_page.set_status_exit("No Fingerprint Data", "#FF6666")
             QTimer.singleShot(2000, self.exit_page.reset_verification_state_exit)
             return
 
@@ -27,6 +29,8 @@ class ExitVerificationHandler:
                 name, program, year_section = student
                 self.exit_page.update_ui_verified(student_no, name, program, year_section, "Exit Logged")
             self.exit_page.set_status_exit("Exit Logged", "#77EE77")
+            notify_exit(student_no)
+            notify_exit_sms(student_no)
 
         QTimer.singleShot(2000, self.exit_page.reset_verification_state_exit)
 
@@ -45,12 +49,15 @@ class ExitVerificationHandler:
             name, program, year_section = student
             self.exit_page.update_ui_verified(qr_value, name, program, year_section, "Exit QR Logged")
             self.exit_page.set_status_exit("Exit QR Logged", "#77EE77")
-            log_exit(
+            success = log_exit(
                 student_no=qr_value,
                 method_id=3,
                 set_status=self.exit_page.set_status_exit
             )
+            if success:
+                notify_exit(qr_value)
+                notify_exit_sms(qr_value)
         else:
-            self.exit_page.set_status_exit("Access Denied", "#FF6666")
+            self.exit_page.set_status_exit("Record Failed", "#FF6666")
 
         QTimer.singleShot(2000, self.exit_page.reset_verification_state_exit)

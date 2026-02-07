@@ -1,9 +1,9 @@
 import cv2
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap
 from camera_thread import CameraThread
 from face_thread import FaceThread
-
 
 class CameraHandler:
     def __init__(self, main_window):
@@ -12,7 +12,6 @@ class CameraHandler:
         self._display_bgr = None
         self._display_info = None
 
-
     def start_camera(self):
         if self.camera_thread and self.camera_thread.isRunning():
             return
@@ -20,19 +19,16 @@ class CameraHandler:
         self.camera_thread.frameCaptured.connect(self.update_camera_frame)
         self.camera_thread.start()
 
-
     def stop_camera(self):
         if self.camera_thread and self.camera_thread.isRunning():
             self.camera_thread.stop()
             self.camera_thread.wait()
-            self.camera_thread = None
+        self.camera_thread = None
         self.clear_camera_feed()
-
 
     def update_camera_frame(self, frame):
         if self.main._suppress_feed:
             return
-
         self.main.original_frame = frame
         h, w, _ = frame.shape
         crop_size = min(h, w)
@@ -53,7 +49,6 @@ class CameraHandler:
             "display_h": target_size,
             "mirrored": True
         }
-
         self.update_pixmap(display_bgr)
 
         if self.main.current_qr and self.main.gallery and (not hasattr(self.main, 'face_thread') or not self.main.face_thread.isRunning()):
@@ -61,11 +56,10 @@ class CameraHandler:
             self.main.face_thread.result_ready.connect(self.main.on_face_result)
             self.main.face_thread.start()
 
-
     def update_pixmap(self, bgr_frame):
         rgb_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
         h_img, w_img = rgb_frame.shape[:2]
-        qt_image = QImage(rgb_frame.data, w_img, h_img, 3*w_img, QImage.Format.Format_RGB888)
+        qt_image = QImage(rgb_frame.data, w_img, h_img, 3 * w_img, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qt_image).scaled(
             self.main.cameraFeed.width(),
             self.main.cameraFeed.height(),
@@ -73,7 +67,6 @@ class CameraHandler:
             Qt.TransformationMode.SmoothTransformation
         )
         self.main.cameraFeed.setPixmap(pixmap)
-
 
     def draw_face_box(self, box, ok):
         x1, y1, x2, y2 = box
@@ -94,8 +87,8 @@ class CameraHandler:
         cv2.rectangle(disp, (dx1, dy1), (dx2, dy2), color, thickness)
         self.update_pixmap(disp)
 
-
     def clear_camera_feed(self):
-        pixmap = QPixmap("./gui/assets/user.png")
+        from utils import resource_path
+        pixmap = QPixmap(resource_path("gui/assets/user.png"))
         self.main.cameraFeed.setPixmap(pixmap)
-        self.main.cameraFeed.setStyleSheet("background-color: white;")
+        self.main._set_camera_feed_background("#FFBF66")  # Ready color

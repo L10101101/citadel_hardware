@@ -1,16 +1,13 @@
 import cv2
 import psycopg2
 import numpy as np
-import os
+
 from openvino.runtime import Core
 from cryptography.fernet import Fernet
-from dotenv import load_dotenv
 from db_utils import get_connection
+from config_store import get_fernet_key
+from utils import resource_path
 
-
-load_dotenv()
-FERNET_KEY = os.getenv("CRYPT_FERNET_KEY")
-cipher = Fernet(FERNET_KEY)
 CONF_THRESHOLD = 0.8
 STILL_DURATION = 2.0
 CAMERA_INDEX = 0
@@ -18,15 +15,13 @@ CAMERA_WIDTH = 3840
 CAMERA_HEIGHT = 2160
 FPS = 30
 
-
-DET_MODEL = "./models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml"
-REC_MODEL = "./models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml"
+DET_MODEL = resource_path("models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml")
+REC_MODEL = resource_path("models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml")
 ie = Core()
 det_model = ie.compile_model(ie.read_model(DET_MODEL), "GPU")
 rec_model = ie.compile_model(ie.read_model(REC_MODEL), "GPU")
 det_output = det_model.output(0)
 rec_output = rec_model.output(0)
-
 
 def open_camera():
     cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
@@ -37,7 +32,6 @@ def open_camera():
     cap.set(cv2.CAP_PROP_FPS, FPS)
     return cap
 
-
 def get_center_crop(frame):
     h, w, _ = frame.shape
     crop_size = min(h, w)
@@ -45,7 +39,6 @@ def get_center_crop(frame):
     y_start = (h - crop_size) // 2
     cropped = frame[y_start:y_start + crop_size, x_start:x_start + crop_size]
     return cropped
-
 
 def get_face(frame):
     h, w = frame.shape[:2]
@@ -63,15 +56,26 @@ def get_face(frame):
     best_face = max(faces, key=lambda f: f[4] * ((f[2] - f[0]) * (f[3] - f[1])))
     return best_face[:4]
 
+def _normalize_lighting(face_crop):
+    lab = cv2.cvtColor(face_crop, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    l = clahe.apply(l)
+    lab = cv2.merge([l, a, b])
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
 def extract_embedding(face_crop):
+    face_crop = _normalize_lighting(face_crop)
     resized = cv2.resize(face_crop, (128, 128))
     blob = np.expand_dims(resized.transpose(2, 0, 1), axis=0)
     emb = rec_model([blob])[rec_output].flatten().astype(np.float32)
     return emb / (np.linalg.norm(emb) + 1e-9)
 
-
-def save_to_db(student_no, emb):
+def save_to_cloud(student_no, emb):
+    key = get_fernet_key()
+    if not key:
+        raise ValueError("Fernet key not configured.")
+    cipher = Fernet(key.encode() if isinstance(key, str) else key)
     emb_bytes = emb.tobytes()
     encrypted = cipher.encrypt(emb_bytes)
 
@@ -91,8 +95,36 @@ def save_to_db(student_no, emb):
     conn.close()
 
     if success:
-        print(f"Saved")
+        print(f"Saved to cloud")
     else:
         print(f"Student {student_no} Not Found")
         raise ValueError(f"{student_no} Not Found")
 
+def save_to_db(student_no, emb):
+    key = get_fernet_key()
+    if not key:
+        raise ValueError("Fernet key not configured.")
+    cipher = Fernet(key.encode() if isinstance(key, str) else key)
+    emb_bytes = emb.tobytes()
+    encrypted = cipher.encrypt(emb_bytes)
+
+    conn, source = get_connection("local")
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE students
+        SET facial_recognition_data = %s,
+            has_facial_recognition = TRUE
+        WHERE student_no = %s
+    """, (psycopg2.Binary(encrypted), student_no))
+    conn.commit()
+
+    success = cur.rowcount > 0
+    cur.close()
+    conn.close()
+
+    if success:
+        print(f"Saved")
+    else:
+        print(f"Student {student_no} Not Found")
+        raise ValueError(f"{student_no} Not Found")

@@ -25,6 +25,7 @@ python-dateutil     2.9.0.post0
 python-dotenv       1.2.1
 pythonnet           3.0.5
 pyzkfp              0.1.5
+keyring
 scipy               1.16.2
 six                 1.17.0
 sqlite-fts4         1.0.3

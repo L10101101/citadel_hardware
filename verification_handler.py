@@ -3,13 +3,10 @@ from qr_verification import verify_qr_in_db
 from utils import lookup_student, log_entry
 from async_email_notifier import notify_parent_task
 from async_sms_notifier import notify_parent_sms_task
-from db_utils import get_connection
-
 
 class VerificationHandler:
     def __init__(self, main_window):
         self.main = main_window
-
 
     def fingerprint_verified(self, student_no):
         if self.main.verification_active:
@@ -17,7 +14,7 @@ class VerificationHandler:
         self.main.verification_active = True
 
         if not student_no:
-            self.main.set_status("Not Registered", "#FF6666")
+            self.main.set_status("No Fingerprint Data", "#FF6666")
             self.main.camera_handler.clear_camera_feed()
             QTimer.singleShot(2000, self.main.reset_verification_state)
             return
@@ -27,17 +24,14 @@ class VerificationHandler:
             method_id=2,
             set_status=self.main.set_status
         )
-
         if success:
             student = lookup_student(student_no)
             if student:
                 name, program, year_section = student
-                self.main.update_ui_verified(student_no, name, program, year_section, "Access Granted")
+                self.main.update_ui_verified(student_no, name, program, year_section, "Entry Logged")
                 notify_parent_task(student_no)
                 notify_parent_sms_task(student_no)
-
         QTimer.singleShot(2000, self.main.reset_verification_state)
-
 
     def on_qr_input_received(self, qr_value):
         if self.main.verification_active:
@@ -51,8 +45,7 @@ class VerificationHandler:
 
         valid, _ = verify_qr_in_db(qr_value)
         if not valid:
-            self.main.statusLabel.setText("Not Registered")
-            self.main.set_status("Not Registered", "#FF6666")
+            self.main.set_status("Not Enrolled", "#FF6666")
             self.main.reset_info()
             return
 
@@ -74,6 +67,6 @@ class VerificationHandler:
     def on_face_timeout(self):
         if self.main.verification_active and self.main.current_qr:
             self.main.reset_verification_state()
-            self.main.reset_info()
-            self.main.set_status("Try Again", "#FFBF66")
-            self.main.hiddenInput.setEnabled(True)
+        self.main.reset_info()
+        self.main.set_status("Try Again", "#FFBF66")
+        self.main.hiddenInput.setEnabled(True)

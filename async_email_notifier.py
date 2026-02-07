@@ -1,30 +1,21 @@
 import asyncio
 import threading
+import os
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from mimetypes import guess_type
 from aiosmtplib import SMTP
 from datetime import datetime
-import os
 from psycopg2 import Error
-from db_utils import get_connection, has_internet
-
-
-SMTP_CONFIG = {
-    "host": "smtp.gmail.com",
-    "port": 587,
-    "user": "citadel.project00@gmail.com",
-    "password": "ljcx sgug xwob grtw",
-    "tls": True
-}
-
+from db_utils import get_connection
+from config_store import get_smtp_config
 
 UCC_LOGO_WIDTH = 100
 UCC_LOGO_HEIGHT = 100
 LOGO_WIDTH = 120
 LOGO_HEIGHT = 120
-
 
 def format_datetime(dt_string: str) -> tuple:
     try:
@@ -36,27 +27,30 @@ def format_datetime(dt_string: str) -> tuple:
         parts = dt_string.split()
         return parts[0], parts[1] if len(parts) > 1 else ""
 
-
 def find_image(image_paths: list) -> str:
+    from utils import resource_path
     for path in image_paths:
-        if os.path.exists(path):
-            return path
+        if path.startswith(("gui/", "gui\\", "./gui")):
+            p = resource_path(path.replace("./", ""))
+        else:
+            p = path
+        if os.path.exists(p):
+            return p
     return None
-
 
 async def send_campus_notification(guardian_email: str, student_name: str, timestamp: str, notification_type: str = "entry"):
     formatted_date, formatted_time = format_datetime(timestamp)
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     logo_path = find_image([
+        "gui/assets/logo.png",
         os.path.join(script_dir, "logo.png"),
-        os.path.join(script_dir, "/gui/assets/logo.png"),
-        "C:/Citadel/gui/assets/logo.png"
+        os.path.join(script_dir, "gui/assets/logo.png"),
     ])
     ucc_logo_path = find_image([
+        "gui/assets/ucc.png",
         os.path.join(script_dir, "ucc.png"),
-        os.path.join(script_dir, "./gui/assets/ucc.png"),
-        "C:/Citadel/gui/assets/ucc.png"
+        os.path.join(script_dir, "gui/assets/ucc.png"),
     ])
 
     is_entry = notification_type.lower() == "entry"
@@ -64,11 +58,13 @@ async def send_campus_notification(guardian_email: str, student_name: str, times
     notification_title = "Campus Entry Notification" if is_entry else "Campus Exit Notification"
     subject_text = "Entry" if is_entry else "Exit"
 
+    smtp_config = get_smtp_config()
+    if not smtp_config.get("user") or not smtp_config.get("password"):
+        return
     msg = MIMEMultipart("related")
-    msg["From"] = SMTP_CONFIG["user"]
+    msg["From"] = smtp_config["user"]
     msg["To"] = guardian_email
     msg["Subject"] = f"Campus {subject_text} Notification - {student_name}"
-
     alt = MIMEMultipart("alternative")
     msg.attach(alt)
 
@@ -138,28 +134,27 @@ This is an automated notification. Please do not reply to this email.
             try:
                 with open(path, "rb") as f:
                     img_data = f.read()
-                    mime_type, _ = guess_type(path)
-                    if not mime_type or not mime_type.startswith("image/"):
-                        print(f"[WARNING] Invalid{path}")
-                        continue
-                    subtype = mime_type.split("/")[1]
-                    img = MIMEImage(img_data, _subtype=subtype)
-                    img.add_header("Content-ID", f"<{cid}>")
-                    img.add_header("Content-Disposition", "inline", filename=os.path.basename(path))
-                    msg.attach(img)
+                mime_type, _ = guess_type(path)
+                if not mime_type or not mime_type.startswith("image/"):
+                    print(f"[WARNING] Invalid {path}")
+                    continue
+                subtype = mime_type.split("/")[1]
+                img = MIMEImage(img_data, _subtype=subtype)
+                img.add_header("Content-ID", f"<{cid}>")
+                img.add_header("Content-Disposition", "inline", filename=os.path.basename(path))
+                msg.attach(img)
             except Exception as e:
                 print(f"[WARNING] Failed {cid}: {e}")
 
-    smtp = SMTP(hostname=SMTP_CONFIG["host"], port=SMTP_CONFIG["port"], start_tls=SMTP_CONFIG["tls"])
+    smtp = SMTP(hostname=smtp_config["host"], port=smtp_config["port"], start_tls=smtp_config["tls"])
     await smtp.connect()
-    await smtp.login(SMTP_CONFIG["user"], SMTP_CONFIG["password"])
+    await smtp.login(smtp_config["user"], smtp_config["password"])
     await smtp.send_message(msg)
     await smtp.quit()
 
-
 async def notify_parent(student_no: str, notification_type: str = "entry"):
     try:
-        conn, source = get_connection("cloud")
+        conn, source = get_connection("local")
         cur = conn.cursor()
         cur.execute("""
             SELECT fullname, guardian_email
@@ -185,16 +180,13 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
     except Error as e:
         print(f"[DB ERROR] {e}")
 
-
 def notify_parent_task(student_no: str, notification_type: str = "entry"):
     def runner():
         asyncio.run(notify_parent(student_no, notification_type))
     threading.Thread(target=runner, daemon=True).start()
 
-
 def notify_entry(student_no: str):
     notify_parent_task(student_no, "entry")
-
 
 def notify_exit(student_no: str):
     notify_parent_task(student_no, "exit")

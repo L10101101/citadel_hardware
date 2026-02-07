@@ -1,44 +1,41 @@
 import os
 import asyncio
 import threading
+
 from twilio.rest import Client
 from db_utils import get_connection
-from dotenv import load_dotenv
+from config_store import get_twilio_config
 from datetime import datetime
 
-load_dotenv()
-
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_PHONE_NUMBER = os.getenv("TWILIO_SMS_NUMBER")
-TWILIO_MESSAGING_SID = os.getenv("TWILIO_MESSAGING_SID")
-
-if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN]):
-    raise ValueError("Twilio credentials are not set.")
-
-client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-
+def _get_twilio_client():
+    cfg = get_twilio_config()
+    if not cfg.get("account_sid") or not cfg.get("auth_token"):
+        return None
+    return Client(cfg["account_sid"], cfg["auth_token"])
 
 async def send_sms(guardian_number: str, student_name: str, action: str):
     try:
+        client = _get_twilio_client()
+        if not client:
+            return
+
+        cfg = get_twilio_config()
+        messaging_sid = cfg.get("messaging_sid")
+        if not messaging_sid:
+            return
+
         timestamp = datetime.now().strftime("%A, %B %d, %Y %I:%M %p")
         message = f"Your child {student_name} has {action} the campus.\nTime: {timestamp}"
 
         msg_params = {
             "body": message,
-            "to": guardian_number
+            "to": guardian_number,
+            "messaging_service_sid": messaging_sid,
         }
-
-        if TWILIO_MESSAGING_SID:
-            msg_params["messaging_service_sid"] = TWILIO_MESSAGING_SID
-        else:
-            raise ValueError("Not Configured")
-
-        msg = client.messages.create(**msg_params)
+        client.messages.create(**msg_params)
 
     except Exception as e:
         print(f"[SMS ERROR] Failed {e}")
-
 
 async def notify_parent_sms(student_no: str, action: str = "entered"):
     try:
@@ -72,16 +69,13 @@ async def notify_parent_sms(student_no: str, action: str = "entered"):
         if conn:
             conn.close()
 
-
 def notify_parent_sms_task(student_no: str, action: str = "entered"):
     def runner():
         asyncio.run(notify_parent_sms(student_no, action))
     threading.Thread(target=runner, daemon=True).start()
 
-
 def notify_entry_sms(student_no: str):
     notify_parent_sms_task(student_no, "entered")
-
 
 def notify_exit_sms(student_no: str):
     notify_parent_sms_task(student_no, "exited")

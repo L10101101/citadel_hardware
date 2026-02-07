@@ -12,21 +12,24 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_Citadel(object):
     def setupUi(self, Citadel):
         Citadel.setObjectName("Citadel")
-        Citadel.resize(1326, 754)
+        Citadel.resize(1280, 720)
+        Citadel.setMinimumSize(QtCore.QSize(520, 320))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/icons/assets/UCC_Logo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         Citadel.setWindowIcon(icon)
         Citadel.setAutoFillBackground(False)
-        Citadel.setStyleSheet("* {\n"
+        Citadel.setStyleSheet("\n"
+"   \n"
+"* {\n"
 "    font-family: \'Poppins-Regular\', sans-serif;\n"
 "}\n"
 "\n"
 "QMainWindow {\n"
-"    background-color: #F6F7FB;\n"
+"    background-color: #E8EAF0;\n"
 "}\n"
 "\n"
 "QWidget#centralWidget {\n"
-"    background-color: #F6F7FB;\n"
+"    background-color: #E8EAF0;\n"
 "}\n"
 "\n"
 "QWidget#titleWidget {\n"
@@ -46,27 +49,30 @@ class Ui_Citadel(object):
 "\n"
 "\n"
 "QWidget#bodyWidget {\n"
-"    background-color: #F6F7FB;\n"
+"    background-color: #E8EAF0;\n"
 "}\n"
 "\n"
 "QWidget#bodyWidget_2 {\n"
-"    background-color: #F6F7FB;\n"
+"    background-color: #E8EAF0;\n"
 "}\n"
 "\n"
 "QWidget#bodyWidgetExit {\n"
-"    background-color: #F6F7FB;\n"
+"    background-color: #E8EAF0;\n"
 "}\n"
 "\n"
 "QWidget#detailsWidget {\n"
-"        background-color: #FFFFFF;\n"
+"    background-color: #FFFFFF;\n"
+"    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QWidget#detailsWidget_2 {\n"
 "        background-color: #FFFFFF;\n"
+"    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QWidget#detailsWidgetExit {\n"
 "        background-color: #FFFFFF;\n"
+"    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QWidget#footerWidget {\n"
@@ -164,16 +170,19 @@ class Ui_Citadel(object):
 "QLabel#footerLabel {\n"
 "    color: #fff;\n"
 "    font-weight: bold;\n"
+"    width: 100%;\n"
 "}\n"
 "\n"
 "QLabel#footerLabel_2 {\n"
 "    color: #fff;\n"
 "    font-weight: bold;\n"
+"    width: 100%;\n"
 "}\n"
 "\n"
 "QLabel#footerLabelExit {\n"
 "    color: #fff;\n"
 "    font-weight: bold;\n"
+"    width: 100%;\n"
 "}\n"
 "\n"
 "QLabel#nameLabel {\n"
@@ -201,72 +210,143 @@ class Ui_Citadel(object):
 "    background-color: #fff;\n"
 "}\n"
 "\n"
+"QLabel#statusLabelExit {\n"
+"    color: #000;\n"
+"    background-color: #fff;\n"
+"}\n"
+"\n"
 "QLabel#cameraFeed {\n"
 "    background-color: #fff;\n"
+"    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QLabel#cameraFeed_2 {\n"
 "    background-color: #fff;\n"
+"    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QLabel#cameraFeedExit {\n"
 "    background-color: #fff;\n"
+"    border-radius: 20px;\n"
 "}\n"
+"\n"
 "\n"
 "QPushButton#btnFace,\n"
-"QPushButton#btnFinger,\n"
-"QPushButton#btnSubmit {\n"
-"    border-radius: 20px; \n"
-"    background-color: #4CAF50;\n"
-"    color: white;\n"
-"    padding: 6px 12px;\n"
+"QPushButton#btnFinger {\n"
+"    border: 2px solid #4CAF50;\n"
+"    background-color: #ffffff;\n"
+"    color: #4CAF50;\n"
+"    padding: 8px 18px;\n"
 "    font-weight: bold;\n"
+"    qproperty-iconSize: 20px;\n"
 "}\n"
 "\n"
+"/* left button rounded */\n"
+"QPushButton#btnFace {\n"
+"    border-top-left-radius: 12px;\n"
+"    border-bottom-left-radius: 12px;\n"
+"    border-top-right-radius: 0;\n"
+"    border-bottom-right-radius: 0;\n"
+"}\n"
+"\n"
+"/* right button rounded */\n"
+"QPushButton#btnFinger {\n"
+"    border-top-left-radius: 0;\n"
+"    border-bottom-left-radius: 0;\n"
+"    border-top-right-radius: 12px;\n"
+"    border-bottom-right-radius: 12px;\n"
+"}\n"
+"\n"
+"/* hover (unselected) */\n"
 "QPushButton#btnFace:hover,\n"
-"QPushButton#btnFinger:hover,\n"
+"QPushButton#btnFinger:hover {\n"
+"    background-color: #E6F5E8;\n"
+"}\n"
+"\n"
+"/* pressed */\n"
+"QPushButton#btnFace:pressed,\n"
+"QPushButton#btnFinger:pressed {\n"
+"    background-color: #D3EDD7;\n"
+"}\n"
+"\n"
+"/* CHECKED — show selected */\n"
+"QPushButton#btnFace:checked,\n"
+"QPushButton#btnFinger:checked {\n"
+"    background-color: #4CAF50;\n"
+"    color: #ffffff;\n"
+"}\n"
+"\n"
+"/* hover while selected */\n"
+"QPushButton#btnFace:checked:hover,\n"
+"QPushButton#btnFinger:checked:hover {\n"
+"    background-color: #43A047;\n"
+"}\n"
+"\n"
+"QPushButton#btnSubmit {\n"
+"    border-radius: 12px;\n"
+"    border: none;\n"
+"    background-color: #4CAF50;\n"
+"    color: white;\n"
+"    padding: 10px 20px;\n"
+"    font-weight: bold;\n"
+"    qproperty-iconSize: 20px;\n"
+"}\n"
+"\n"
 "QPushButton#btnSubmit:hover {\n"
-"    background-color: #45A049;\n"
+"    background-color: #43A047; \n"
+"}\n"
+"\n"
+"QPushButton#btnSubmit:pressed {\n"
+"    background-color: #3C8F3F;\n"
 "}\n"
 "\n"
 "QLineEdit#txtStudentNo {\n"
 "    border: 2px solid #ccc;\n"
-"    border-radius: 15px;\n"
+"    border-radius: 8px;\n"
 "    padding: 4px 8px;\n"
 "    background-color: #f9f9f9;\n"
 "}\n"
 "\n"
 "QLabel#lblStatus {\n"
 "    border-radius: 10px;\n"
-"    padding: 4px 8px;\n"
+"    padding: 20px 30px;\n"
 "    background-color: #eee;\n"
 "    color: #333;\n"
 "    font-weight: bold;\n"
 "}\n"
 "\n"
-"QMenuBar::item {\n"
+"/* Default button style in toolbar */\n"
+"\n"
+"QToolBar{\n"
+"    background: white;\n"
+"}\n"
+"\n"
+"QToolButton {\n"
 "    background: transparent;\n"
-"    padding: 5px 20px;\n"
+"    padding: 5px 10px;\n"
 "    margin: 2px 6px;\n"
 "    border-radius: 8px;\n"
-"    min-width: 120px;\n"
+"    min-width: 100px;\n"
 "    color: #333;\n"
 "}\n"
 "\n"
-"QMenuBar::item:selected {\n"
-"    background: #0b6641;\n"
+"/* Hover */\n"
+"QToolBar QToolButton:hover {\n"
+"    background: #1c855a;\n"
 "    color: white;\n"
 "}\n"
 "\n"
-"QMenuBar::item:pressed {\n"
+"/* Pressed */\n"
+"QToolBar QToolButton:pressed {\n"
 "    background: #064f32;\n"
 "    color: white;\n"
 "}\n"
 "\n"
-"QMenuBar::item[current_tab=\"true\"] {\n"
+"/* Checked (active tab) */\n"
+"QToolBar QToolButton:checked {\n"
 "    background: #064f32;\n"
 "    color: white;\n"
-"    border: 1px solid #033520;\n"
+"    border-radius: 4px;\n"
 "}")
         self.centralwidget = QtWidgets.QWidget(parent=Citadel)
         self.centralwidget.setObjectName("centralwidget")
@@ -276,12 +356,13 @@ class Ui_Citadel(object):
         self.stackedWidget.setObjectName("stackedWidget")
         self.page_main = QtWidgets.QWidget()
         self.page_main.setObjectName("page_main")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.page_main)
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.gridLayout_3 = QtWidgets.QGridLayout(self.page_main)
+        self.gridLayout_3.setObjectName("gridLayout_3")
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.setObjectName("mainLayout")
         self.titleWidget = QtWidgets.QWidget(parent=self.page_main)
         self.titleWidget.setEnabled(True)
+        self.titleWidget.setMinimumSize(QtCore.QSize(1280, 100))
         self.titleWidget.setMaximumSize(QtCore.QSize(16777215, 100))
         self.titleWidget.setObjectName("titleWidget")
         self.horizontalLayout1 = QtWidgets.QHBoxLayout(self.titleWidget)
@@ -327,11 +408,17 @@ class Ui_Citadel(object):
         self.dateTimeLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.dateTimeLabel.setObjectName("dateTimeLabel")
         self.titleLayout.addWidget(self.dateTimeLabel)
+        self.onlineLabel = QtWidgets.QLabel(parent=self.titleWidget)
+        self.onlineLabel.setMinimumSize(QtCore.QSize(80, 80))
+        self.onlineLabel.setMaximumSize(QtCore.QSize(80, 80))
+        self.onlineLabel.setText("")
+        self.onlineLabel.setObjectName("onlineLabel")
+        self.titleLayout.addWidget(self.onlineLabel)
         self.horizontalLayout1.addLayout(self.titleLayout)
         self.mainLayout.addWidget(self.titleWidget)
         self.bodyWidget = QtWidgets.QWidget(parent=self.page_main)
         self.bodyWidget.setEnabled(True)
-        self.bodyWidget.setMinimumSize(QtCore.QSize(1280, 500))
+        self.bodyWidget.setMinimumSize(QtCore.QSize(0, 0))
         self.bodyWidget.setAutoFillBackground(False)
         self.bodyWidget.setObjectName("bodyWidget")
         self.horizontalLayout2 = QtWidgets.QHBoxLayout(self.bodyWidget)
@@ -372,13 +459,27 @@ class Ui_Citadel(object):
         self.detailsLayout = QtWidgets.QVBoxLayout()
         self.detailsLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
         self.detailsLayout.setContentsMargins(50, 50, 50, 0)
+        self.detailsLayout.setSpacing(15)
         self.detailsLayout.setObjectName("detailsLayout")
-        self.nameLabel = QtWidgets.QLabel(parent=self.detailsWidget)
-        self.nameLabel.setMinimumSize(QtCore.QSize(0, 0))
+        self.label_2 = QtWidgets.QLabel(parent=self.detailsWidget)
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
         font.setPointSize(20)
         font.setBold(True)
+        self.label_2.setFont(font)
+        self.label_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label_2.setObjectName("label_2")
+        self.detailsLayout.addWidget(self.label_2)
+        self.label_4 = QtWidgets.QLabel(parent=self.detailsWidget)
+        self.label_4.setText("")
+        self.label_4.setObjectName("label_4")
+        self.detailsLayout.addWidget(self.label_4)
+        self.nameLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        self.nameLabel.setMinimumSize(QtCore.QSize(0, 0))
+        font = QtGui.QFont()
+        font.setFamily("Poppins-Regular")
+        font.setPointSize(16)
+        font.setBold(False)
         self.nameLabel.setFont(font)
         self.nameLabel.setAutoFillBackground(False)
         self.nameLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -390,7 +491,7 @@ class Ui_Citadel(object):
         self.idLabel = QtWidgets.QLabel(parent=self.detailsWidget)
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
-        font.setPointSize(15)
+        font.setPointSize(14)
         self.idLabel.setFont(font)
         self.idLabel.setAutoFillBackground(False)
         self.idLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -403,7 +504,7 @@ class Ui_Citadel(object):
         self.programLabel.setMinimumSize(QtCore.QSize(0, 0))
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
-        font.setPointSize(15)
+        font.setPointSize(14)
         self.programLabel.setFont(font)
         self.programLabel.setAutoFillBackground(False)
         self.programLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -477,6 +578,7 @@ class Ui_Citadel(object):
         self.mainLayout.addWidget(self.bodyWidget)
         self.footerWidget = QtWidgets.QWidget(parent=self.page_main)
         self.footerWidget.setMinimumSize(QtCore.QSize(1280, 70))
+        self.footerWidget.setMaximumSize(QtCore.QSize(16777215, 80))
         self.footerWidget.setObjectName("footerWidget")
         self.footerHBox = QtWidgets.QHBoxLayout(self.footerWidget)
         self.footerHBox.setObjectName("footerHBox")
@@ -486,11 +588,12 @@ class Ui_Citadel(object):
         font.setPointSize(10)
         font.setBold(True)
         self.footerLabel.setFont(font)
+        self.footerLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.footerLabel.setWordWrap(False)
         self.footerLabel.setObjectName("footerLabel")
-        self.footerHBox.addWidget(self.footerLabel, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.footerHBox.addWidget(self.footerLabel)
         self.mainLayout.addWidget(self.footerWidget)
-        self.verticalLayout.addLayout(self.mainLayout)
+        self.gridLayout_3.addLayout(self.mainLayout, 0, 0, 1, 1)
         self.stackedWidget.addWidget(self.page_main)
         self.page_exit = QtWidgets.QWidget()
         self.page_exit.setObjectName("page_exit")
@@ -500,6 +603,7 @@ class Ui_Citadel(object):
         self.gridLayout.setObjectName("gridLayout")
         self.titleWidgetExit = QtWidgets.QWidget(parent=self.page_exit)
         self.titleWidgetExit.setEnabled(True)
+        self.titleWidgetExit.setMinimumSize(QtCore.QSize(1280, 100))
         self.titleWidgetExit.setMaximumSize(QtCore.QSize(16777215, 100))
         self.titleWidgetExit.setObjectName("titleWidgetExit")
         self.horizontalLayout1_3 = QtWidgets.QHBoxLayout(self.titleWidgetExit)
@@ -545,11 +649,17 @@ class Ui_Citadel(object):
         self.dateTimeLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.dateTimeLabelExit.setObjectName("dateTimeLabelExit")
         self.titleLayoutExit.addWidget(self.dateTimeLabelExit)
+        self.onlineLabel_2 = QtWidgets.QLabel(parent=self.titleWidgetExit)
+        self.onlineLabel_2.setMinimumSize(QtCore.QSize(80, 80))
+        self.onlineLabel_2.setMaximumSize(QtCore.QSize(80, 80))
+        self.onlineLabel_2.setText("")
+        self.onlineLabel_2.setObjectName("onlineLabel_2")
+        self.titleLayoutExit.addWidget(self.onlineLabel_2)
         self.horizontalLayout1_3.addLayout(self.titleLayoutExit)
         self.gridLayout.addWidget(self.titleWidgetExit, 0, 0, 1, 1)
         self.bodyWidgetExit = QtWidgets.QWidget(parent=self.page_exit)
         self.bodyWidgetExit.setEnabled(True)
-        self.bodyWidgetExit.setMinimumSize(QtCore.QSize(1280, 500))
+        self.bodyWidgetExit.setMinimumSize(QtCore.QSize(0, 0))
         self.bodyWidgetExit.setAutoFillBackground(False)
         self.bodyWidgetExit.setObjectName("bodyWidgetExit")
         self.horizontalLayout2_2 = QtWidgets.QHBoxLayout(self.bodyWidgetExit)
@@ -590,13 +700,27 @@ class Ui_Citadel(object):
         self.detailsLayoutExit = QtWidgets.QVBoxLayout()
         self.detailsLayoutExit.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
         self.detailsLayoutExit.setContentsMargins(50, 50, 50, 0)
+        self.detailsLayoutExit.setSpacing(15)
         self.detailsLayoutExit.setObjectName("detailsLayoutExit")
-        self.nameLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        self.nameLabelExit.setMinimumSize(QtCore.QSize(0, 0))
+        self.label_3 = QtWidgets.QLabel(parent=self.detailsWidgetExit)
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
         font.setPointSize(20)
         font.setBold(True)
+        self.label_3.setFont(font)
+        self.label_3.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label_3.setObjectName("label_3")
+        self.detailsLayoutExit.addWidget(self.label_3)
+        self.label_5 = QtWidgets.QLabel(parent=self.detailsWidgetExit)
+        self.label_5.setText("")
+        self.label_5.setObjectName("label_5")
+        self.detailsLayoutExit.addWidget(self.label_5)
+        self.nameLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
+        self.nameLabelExit.setMinimumSize(QtCore.QSize(0, 0))
+        font = QtGui.QFont()
+        font.setFamily("Poppins-Regular")
+        font.setPointSize(16)
+        font.setBold(False)
         self.nameLabelExit.setFont(font)
         self.nameLabelExit.setAutoFillBackground(False)
         self.nameLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -608,7 +732,7 @@ class Ui_Citadel(object):
         self.idLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
-        font.setPointSize(15)
+        font.setPointSize(14)
         self.idLabelExit.setFont(font)
         self.idLabelExit.setAutoFillBackground(False)
         self.idLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -621,7 +745,7 @@ class Ui_Citadel(object):
         self.programLabelExit.setMinimumSize(QtCore.QSize(0, 0))
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
-        font.setPointSize(15)
+        font.setPointSize(14)
         self.programLabelExit.setFont(font)
         self.programLabelExit.setAutoFillBackground(False)
         self.programLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -695,6 +819,7 @@ class Ui_Citadel(object):
         self.gridLayout.addWidget(self.bodyWidgetExit, 1, 0, 1, 1)
         self.footerWidgetExit = QtWidgets.QWidget(parent=self.page_exit)
         self.footerWidgetExit.setMinimumSize(QtCore.QSize(1280, 70))
+        self.footerWidgetExit.setMaximumSize(QtCore.QSize(16777215, 80))
         self.footerWidgetExit.setObjectName("footerWidgetExit")
         self.footerHBox_3 = QtWidgets.QHBoxLayout(self.footerWidgetExit)
         self.footerHBox_3.setObjectName("footerHBox_3")
@@ -704,243 +829,22 @@ class Ui_Citadel(object):
         font.setPointSize(10)
         font.setBold(True)
         self.footerLabelExit.setFont(font)
+        self.footerLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.footerLabelExit.setWordWrap(False)
         self.footerLabelExit.setObjectName("footerLabelExit")
-        self.footerHBox_3.addWidget(self.footerLabelExit, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.footerHBox_3.addWidget(self.footerLabelExit)
         self.gridLayout.addWidget(self.footerWidgetExit, 2, 0, 1, 1)
         self.gridLayout_2.addLayout(self.gridLayout, 0, 0, 1, 1)
         self.stackedWidget.addWidget(self.page_exit)
-        self.page_enroll = QtWidgets.QWidget()
-        self.page_enroll.setObjectName("page_enroll")
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.page_enroll)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.enrollLayout = QtWidgets.QVBoxLayout()
-        self.enrollLayout.setObjectName("enrollLayout")
-        self.titleWidget_2 = QtWidgets.QWidget(parent=self.page_enroll)
-        self.titleWidget_2.setEnabled(True)
-        self.titleWidget_2.setMaximumSize(QtCore.QSize(16777215, 100))
-        self.titleWidget_2.setObjectName("titleWidget_2")
-        self.horizontalLayout1_2 = QtWidgets.QHBoxLayout(self.titleWidget_2)
-        self.horizontalLayout1_2.setObjectName("horizontalLayout1_2")
-        self.titleLayout_2 = QtWidgets.QHBoxLayout()
-        self.titleLayout_2.setObjectName("titleLayout_2")
-        self.logoLabel_2 = QtWidgets.QLabel(parent=self.titleWidget_2)
-        self.logoLabel_2.setMinimumSize(QtCore.QSize(120, 50))
-        self.logoLabel_2.setMaximumSize(QtCore.QSize(120, 80))
-        self.logoLabel_2.setText("")
-        self.logoLabel_2.setPixmap(QtGui.QPixmap("gui/assets/UCC_Logo.ico"))
-        self.logoLabel_2.setScaledContents(True)
-        self.logoLabel_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.logoLabel_2.setObjectName("logoLabel_2")
-        self.titleLayout_2.addWidget(self.logoLabel_2)
-        self.engLogoLabel_2 = QtWidgets.QLabel(parent=self.titleWidget_2)
-        self.engLogoLabel_2.setMinimumSize(QtCore.QSize(80, 80))
-        self.engLogoLabel_2.setMaximumSize(QtCore.QSize(80, 80))
-        self.engLogoLabel_2.setText("")
-        self.engLogoLabel_2.setPixmap(QtGui.QPixmap("gui/assets/Engineering_Logo.ico"))
-        self.engLogoLabel_2.setScaledContents(True)
-        self.engLogoLabel_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.engLogoLabel_2.setObjectName("engLogoLabel_2")
-        self.titleLayout_2.addWidget(self.engLogoLabel_2)
-        self.logoSpacer_2 = QtWidgets.QLabel(parent=self.titleWidget_2)
-        self.logoSpacer_2.setMinimumSize(QtCore.QSize(20, 0))
-        self.logoSpacer_2.setMaximumSize(QtCore.QSize(20, 16777215))
-        self.logoSpacer_2.setText("")
-        self.logoSpacer_2.setObjectName("logoSpacer_2")
-        self.titleLayout_2.addWidget(self.logoSpacer_2)
-        self.schoolLayout_2 = QtWidgets.QVBoxLayout()
-        self.schoolLayout_2.setObjectName("schoolLayout_2")
-        self.schoolNameLabel_2 = QtWidgets.QLabel(parent=self.titleWidget_2)
-        self.schoolNameLabel_2.setScaledContents(True)
-        self.schoolNameLabel_2.setObjectName("schoolNameLabel_2")
-        self.schoolLayout_2.addWidget(self.schoolNameLabel_2)
-        self.schoolSubLabel_2 = QtWidgets.QLabel(parent=self.titleWidget_2)
-        self.schoolSubLabel_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignTop)
-        self.schoolSubLabel_2.setObjectName("schoolSubLabel_2")
-        self.schoolLayout_2.addWidget(self.schoolSubLabel_2)
-        self.titleLayout_2.addLayout(self.schoolLayout_2)
-        self.dateTimeLabel_2 = QtWidgets.QLabel(parent=self.titleWidget_2)
-        self.dateTimeLabel_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.dateTimeLabel_2.setObjectName("dateTimeLabel_2")
-        self.titleLayout_2.addWidget(self.dateTimeLabel_2)
-        self.horizontalLayout1_2.addLayout(self.titleLayout_2)
-        self.enrollLayout.addWidget(self.titleWidget_2)
-        self.bodyWidget_2 = QtWidgets.QWidget(parent=self.page_enroll)
-        self.bodyWidget_2.setEnabled(True)
-        self.bodyWidget_2.setMinimumSize(QtCore.QSize(1280, 500))
-        self.bodyWidget_2.setAutoFillBackground(False)
-        self.bodyWidget_2.setObjectName("bodyWidget_2")
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.bodyWidget_2)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.bodyLayout_2 = QtWidgets.QHBoxLayout()
-        self.bodyLayout_2.setObjectName("bodyLayout_2")
-        self.cameraLayout_2 = QtWidgets.QHBoxLayout()
-        self.cameraLayout_2.setContentsMargins(11, 22, 11, 22)
-        self.cameraLayout_2.setObjectName("cameraLayout_2")
-        spacerItem8 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.cameraLayout_2.addItem(spacerItem8)
-        self.cameraFeed_2 = QtWidgets.QLabel(parent=self.bodyWidget_2)
-        self.cameraFeed_2.setEnabled(True)
-        self.cameraFeed_2.setMinimumSize(QtCore.QSize(0, 0))
-        self.cameraFeed_2.setMaximumSize(QtCore.QSize(16662777, 16662777))
-        self.cameraFeed_2.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.cameraFeed_2.setText("")
-        self.cameraFeed_2.setTextFormat(QtCore.Qt.TextFormat.PlainText)
-        self.cameraFeed_2.setScaledContents(False)
-        self.cameraFeed_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.cameraFeed_2.setObjectName("cameraFeed_2")
-        self.cameraLayout_2.addWidget(self.cameraFeed_2)
-        spacerItem9 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.cameraLayout_2.addItem(spacerItem9)
-        self.bodyLayout_2.addLayout(self.cameraLayout_2)
-        self.detailsContainer_2 = QtWidgets.QWidget(parent=self.bodyWidget_2)
-        self.detailsContainer_2.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.detailsContainer_2.setObjectName("detailsContainer_2")
-        self.horizontalLayout3_2 = QtWidgets.QHBoxLayout(self.detailsContainer_2)
-        self.horizontalLayout3_2.setContentsMargins(-1, 22, -1, 22)
-        self.horizontalLayout3_2.setObjectName("horizontalLayout3_2")
-        spacerItem10 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.horizontalLayout3_2.addItem(spacerItem10)
-        self.detailsLayout_2 = QtWidgets.QVBoxLayout()
-        self.detailsLayout_2.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
-        self.detailsLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.detailsLayout_2.setSpacing(7)
-        self.detailsLayout_2.setObjectName("detailsLayout_2")
-        self.detailsWidget_2 = QtWidgets.QWidget(parent=self.detailsContainer_2)
-        self.detailsWidget_2.setMinimumSize(QtCore.QSize(0, 0))
-        self.detailsWidget_2.setMaximumSize(QtCore.QSize(16662777, 16662777))
-        self.detailsWidget_2.setObjectName("detailsWidget_2")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.detailsWidget_2)
-        self.verticalLayout_3.setContentsMargins(-1, 40, -1, 40)
-        self.verticalLayout_3.setSpacing(0)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.studentNoVerticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.studentNoVerticalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.studentNoVerticalLayout_3.setObjectName("studentNoVerticalLayout_3")
-        self.studentNoWidget = QtWidgets.QWidget(parent=self.detailsWidget_2)
-        self.studentNoWidget.setMinimumSize(QtCore.QSize(0, 0))
-        self.studentNoWidget.setObjectName("studentNoWidget")
-        self.verticalLayout_10 = QtWidgets.QVBoxLayout(self.studentNoWidget)
-        self.verticalLayout_10.setContentsMargins(60, 70, 60, 20)
-        self.verticalLayout_10.setSpacing(15)
-        self.verticalLayout_10.setObjectName("verticalLayout_10")
-        self.label_2 = QtWidgets.QLabel(parent=self.studentNoWidget)
-        self.label_2.setMinimumSize(QtCore.QSize(0, 0))
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(14)
-        font.setBold(True)
-        self.label_2.setFont(font)
-        self.label_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout_10.addWidget(self.label_2)
-        self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_9.setSpacing(20)
-        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
-        self.btnFace = QtWidgets.QPushButton(parent=self.studentNoWidget)
-        self.btnFace.setMinimumSize(QtCore.QSize(0, 50))
-        self.btnFace.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-        self.btnFace.setObjectName("btnFace")
-        self.horizontalLayout_9.addWidget(self.btnFace)
-        self.btnFinger = QtWidgets.QPushButton(parent=self.studentNoWidget)
-        self.btnFinger.setMinimumSize(QtCore.QSize(0, 50))
-        self.btnFinger.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-        self.btnFinger.setObjectName("btnFinger")
-        self.horizontalLayout_9.addWidget(self.btnFinger)
-        self.verticalLayout_10.addLayout(self.horizontalLayout_9)
-        self.txtStudentNo = QtWidgets.QLineEdit(parent=self.studentNoWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.txtStudentNo.sizePolicy().hasHeightForWidth())
-        self.txtStudentNo.setSizePolicy(sizePolicy)
-        self.txtStudentNo.setMinimumSize(QtCore.QSize(0, 50))
-        self.txtStudentNo.setMaxLength(10)
-        self.txtStudentNo.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.txtStudentNo.setReadOnly(False)
-        self.txtStudentNo.setObjectName("txtStudentNo")
-        self.verticalLayout_10.addWidget(self.txtStudentNo)
-        self.btnSubmit = QtWidgets.QPushButton(parent=self.studentNoWidget)
-        self.btnSubmit.setMinimumSize(QtCore.QSize(0, 50))
-        self.btnSubmit.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
-        font.setBold(True)
-        self.btnSubmit.setFont(font)
-        self.btnSubmit.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-        self.btnSubmit.setLayoutDirection(QtCore.Qt.LayoutDirection.LeftToRight)
-        self.btnSubmit.setAutoDefault(False)
-        self.btnSubmit.setDefault(False)
-        self.btnSubmit.setFlat(False)
-        self.btnSubmit.setObjectName("btnSubmit")
-        self.verticalLayout_10.addWidget(self.btnSubmit)
-        self.studentNoVerticalLayout_3.addWidget(self.studentNoWidget)
-        self.verticalLayout_3.addLayout(self.studentNoVerticalLayout_3)
-        self.statusLayout4_2 = QtWidgets.QHBoxLayout()
-        self.statusLayout4_2.setContentsMargins(60, 0, 60, 40)
-        self.statusLayout4_2.setObjectName("statusLayout4_2")
-        self.statusWidget_2 = QtWidgets.QWidget(parent=self.detailsWidget_2)
-        self.statusWidget_2.setMinimumSize(QtCore.QSize(0, 0))
-        self.statusWidget_2.setMaximumSize(QtCore.QSize(16777215, 50))
-        self.statusWidget_2.setObjectName("statusWidget_2")
-        self.horizontalLayout5_2 = QtWidgets.QHBoxLayout(self.statusWidget_2)
-        self.horizontalLayout5_2.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout5_2.setObjectName("horizontalLayout5_2")
-        self.lblStatus = QtWidgets.QLabel(parent=self.statusWidget_2)
-        self.lblStatus.setMinimumSize(QtCore.QSize(0, 0))
-        self.lblStatus.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
-        font.setBold(True)
-        self.lblStatus.setFont(font)
-        self.lblStatus.setAutoFillBackground(False)
-        self.lblStatus.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.lblStatus.setText("")
-        self.lblStatus.setScaledContents(True)
-        self.lblStatus.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.lblStatus.setWordWrap(True)
-        self.lblStatus.setObjectName("lblStatus")
-        self.horizontalLayout5_2.addWidget(self.lblStatus)
-        self.statusLayout4_2.addWidget(self.statusWidget_2)
-        self.verticalLayout_3.addLayout(self.statusLayout4_2)
-        self.detailsLayout_2.addWidget(self.detailsWidget_2)
-        self.horizontalLayout3_2.addLayout(self.detailsLayout_2)
-        spacerItem11 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.horizontalLayout3_2.addItem(spacerItem11)
-        self.bodyLayout_2.addWidget(self.detailsContainer_2)
-        self.horizontalLayout_4.addLayout(self.bodyLayout_2)
-        self.enrollLayout.addWidget(self.bodyWidget_2)
-        self.footerWidget_2 = QtWidgets.QWidget(parent=self.page_enroll)
-        self.footerWidget_2.setMinimumSize(QtCore.QSize(1280, 70))
-        self.footerWidget_2.setObjectName("footerWidget_2")
-        self.footerHBox_2 = QtWidgets.QHBoxLayout(self.footerWidget_2)
-        self.footerHBox_2.setObjectName("footerHBox_2")
-        self.footerLabel_2 = QtWidgets.QLabel(parent=self.footerWidget_2)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(10)
-        font.setBold(True)
-        self.footerLabel_2.setFont(font)
-        self.footerLabel_2.setWordWrap(False)
-        self.footerLabel_2.setObjectName("footerLabel_2")
-        self.footerHBox_2.addWidget(self.footerLabel_2, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-        self.enrollLayout.addWidget(self.footerWidget_2)
-        self.verticalLayout_2.addLayout(self.enrollLayout)
-        self.stackedWidget.addWidget(self.page_enroll)
-        self.page_settings = QtWidgets.QWidget()
-        self.page_settings.setObjectName("page_settings")
-        self.stackedWidget.addWidget(self.page_settings)
         self.verticalLayout1.addWidget(self.stackedWidget)
         Citadel.setCentralWidget(self.centralwidget)
-        self.menuBar = QtWidgets.QMenuBar(parent=Citadel)
-        self.menuBar.setGeometry(QtCore.QRect(0, 0, 1326, 33))
-        self.menuBar.setObjectName("menuBar")
-        Citadel.setMenuBar(self.menuBar)
+        self.toolBar = QtWidgets.QToolBar(parent=Citadel)
+        self.toolBar.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        self.toolBar.setObjectName("toolBar")
+        Citadel.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
 
         self.retranslateUi(Citadel)
-        self.stackedWidget.setCurrentIndex(1)
+        self.stackedWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Citadel)
 
     def retranslateUi(self, Citadel):
@@ -949,6 +853,7 @@ class Ui_Citadel(object):
         self.schoolNameLabel.setText(_translate("Citadel", "University of Caloocan City"))
         self.schoolSubLabel.setText(_translate("Citadel", "Bagong Silang Campus | College of Engineering"))
         self.dateTimeLabel.setText(_translate("Citadel", "October 15, 2025 | 05:00AM"))
+        self.label_2.setText(_translate("Citadel", "STUDENT DATA"))
         self.nameLabel.setText(_translate("Citadel", "Name"))
         self.idLabel.setText(_translate("Citadel", "ID"))
         self.programLabel.setText(_translate("Citadel", "Program"))
@@ -958,21 +863,14 @@ class Ui_Citadel(object):
         self.schoolNameLabelExit.setText(_translate("Citadel", "University of Caloocan City"))
         self.schoolSubLabelExit.setText(_translate("Citadel", "Bagong Silang Campus | College of Engineering"))
         self.dateTimeLabelExit.setText(_translate("Citadel", "October 15, 2025 | 05:00AM"))
+        self.label_3.setText(_translate("Citadel", "STUDENT DATA"))
         self.nameLabelExit.setText(_translate("Citadel", "Name"))
         self.idLabelExit.setText(_translate("Citadel", "ID"))
         self.programLabelExit.setText(_translate("Citadel", "Program"))
         self.yearSecLabelExit.setText(_translate("Citadel", "Year and Section"))
         self.entryLabelExit.setText(_translate("Citadel", "Time"))
         self.footerLabelExit.setText(_translate("Citadel", "Welcome to University of Caloocan City | Please scan your QR code and verify through biometrics for secure access."))
-        self.schoolNameLabel_2.setText(_translate("Citadel", "University of Caloocan City"))
-        self.schoolSubLabel_2.setText(_translate("Citadel", "Bagong Silang Campus | College of Engineering"))
-        self.dateTimeLabel_2.setText(_translate("Citadel", "October 15, 2025 | 05:00AM"))
-        self.label_2.setText(_translate("Citadel", "ENROLL STUDENT DATA"))
-        self.btnFace.setText(_translate("Citadel", "Face Data"))
-        self.btnFinger.setText(_translate("Citadel", "Fingerprint"))
-        self.txtStudentNo.setPlaceholderText(_translate("Citadel", "Enter student no."))
-        self.btnSubmit.setText(_translate("Citadel", "Submit"))
-        self.footerLabel_2.setText(_translate("Citadel", "Welcome to University of Caloocan City | Please scan your QR code and verify through biometrics for secure access."))
+        self.toolBar.setWindowTitle(_translate("Citadel", "toolBar"))
 
 
 if __name__ == "__main__":
