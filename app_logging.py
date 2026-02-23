@@ -1,10 +1,24 @@
 import logging
 import os
+import json
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
 
 _CONFIGURED = False
+
+
+class JsonLogFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exc_info"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=True)
 
 
 def _default_log_dir() -> Path:
@@ -22,10 +36,14 @@ def configure_logging(app_name: str = "citadel", level: int = logging.INFO) -> P
 
     root = logging.getLogger()
     root.setLevel(level)
-    fmt = logging.Formatter(
-        "%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        "%Y-%m-%d %H:%M:%S",
-    )
+    log_format = (os.environ.get("CITADEL_LOG_FORMAT") or "text").strip().lower()
+    if log_format == "json":
+        fmt = JsonLogFormatter()
+    else:
+        fmt = logging.Formatter(
+            "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+            "%Y-%m-%d %H:%M:%S",
+        )
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(level)

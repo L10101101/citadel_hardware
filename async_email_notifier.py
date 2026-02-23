@@ -2,12 +2,14 @@ import asyncio
 import threading
 import os
 import logging
+import socket
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from mimetypes import guess_type
 from aiosmtplib import SMTP
+from aiosmtplib.errors import SMTPException
 from datetime import datetime
 from psycopg2 import Error
 from db_utils import get_connection
@@ -181,10 +183,18 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
 
     except Error:
         logger.exception("Email notification database error")
+    except (SMTPException, socket.gaierror, OSError) as e:
+        logger.warning("Email notification skipped (network/SMTP unavailable): %s", e)
+    except Exception as e:
+        logger.warning("Email notification skipped: %s", e)
 
 def notify_parent_task(student_no: str, notification_type: str = "entry"):
     def runner():
-        asyncio.run(notify_parent(student_no, notification_type))
+        try:
+            asyncio.run(notify_parent(student_no, notification_type))
+        except Exception as e:
+            # Keep notifier thread failures non-fatal and avoid noisy thread tracebacks.
+            logger.warning("Email notifier thread stopped with error: %s", e)
     threading.Thread(target=runner, daemon=True).start()
 
 def notify_entry(student_no: str):

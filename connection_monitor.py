@@ -95,6 +95,7 @@ class ConnectionMonitor:
         self.has_connection = True
         self.connection_warning_shown = False
         self._connection_notification = None
+        self._wired_sync_manager_id = None
         self.connection_check_timer = QTimer()
         self.connection_check_timer.timeout.connect(self.check_internet_connection)
         self.connection_check_timer.start(5000)  # Check every 5 seconds
@@ -105,35 +106,44 @@ class ConnectionMonitor:
     def _setup_sync_callbacks(self):
         if hasattr(self.main_window, 'sync_manager'):
             sm = self.main_window.sync_manager
-            prev_start = getattr(sm, "on_sync_start", None)
-            prev_progress = getattr(sm, "on_sync_progress", None)
-            prev_complete = getattr(sm, "on_sync_complete", None)
-            prev_error = getattr(sm, "on_sync_error", None)
+            if sm is None:
+                return
+            sm_id = id(sm)
+            if self._wired_sync_manager_id == sm_id:
+                return
+
+            # Preserve the original callbacks once so repeated wiring does not chain wrappers.
+            if not hasattr(sm, "_cm_base_on_sync_start"):
+                sm._cm_base_on_sync_start = getattr(sm, "on_sync_start", None)
+                sm._cm_base_on_sync_progress = getattr(sm, "on_sync_progress", None)
+                sm._cm_base_on_sync_complete = getattr(sm, "on_sync_complete", None)
+                sm._cm_base_on_sync_error = getattr(sm, "on_sync_error", None)
 
             def chained_start():
-                if callable(prev_start):
-                    prev_start()
+                if callable(sm._cm_base_on_sync_start):
+                    sm._cm_base_on_sync_start()
                 self._on_sync_start()
 
             def chained_progress(message: str, percent=None):
-                if callable(prev_progress):
-                    prev_progress(message, percent)
+                if callable(sm._cm_base_on_sync_progress):
+                    sm._cm_base_on_sync_progress(message, percent)
                 self._on_sync_progress(message, percent)
 
             def chained_complete():
-                if callable(prev_complete):
-                    prev_complete()
+                if callable(sm._cm_base_on_sync_complete):
+                    sm._cm_base_on_sync_complete()
                 self._on_sync_complete()
 
             def chained_error(error: str):
-                if callable(prev_error):
-                    prev_error(error)
+                if callable(sm._cm_base_on_sync_error):
+                    sm._cm_base_on_sync_error(error)
                 self._on_sync_error(error)
 
             sm.on_sync_start = chained_start
             sm.on_sync_progress = chained_progress
             sm.on_sync_complete = chained_complete
             sm.on_sync_error = chained_error
+            self._wired_sync_manager_id = sm_id
     
     def _on_sync_start(self):
         pass

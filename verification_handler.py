@@ -56,11 +56,15 @@ class VerificationHandler:
             status_no_fingerprint_data(self.main.set_status)
             self.main.camera_handler.clear_camera_feed()
             self._schedule_reset_info()
+            self.main.verification_active = False
+            self.main.hiddenInput.setEnabled(True)
             return
 
         action = self._get_action(student_no)
         if action == "error":
             status_cloud_unavailable(self.main.set_status)
+            self.main.verification_active = False
+            self.main.hiddenInput.setEnabled(True)
             return
 
         if action == "exit":
@@ -93,6 +97,8 @@ class VerificationHandler:
                 self.main.schedule_reset_info(8000)
             else:
                 self._schedule_reset_info()
+        self.main.verification_active = False
+        self.main.hiddenInput.setEnabled(True)
     def on_qr_input_received(self, qr_value):
         if getattr(self.main, "emergency_mode", None) and self.main.emergency_mode.active:
             return
@@ -153,6 +159,8 @@ class VerificationHandler:
                 self.main.schedule_reset_info(8000)
             else:
                 self._schedule_reset_info()
+            self.main.verification_active = False
+            self.main.hiddenInput.setEnabled(True)
             return
 
         if not can_attempt_entry(qr_value, set_status=self.main.set_status):

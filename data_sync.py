@@ -5,6 +5,7 @@ import tempfile
 import threading
 import re
 import time
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Callable
 
@@ -25,6 +26,8 @@ from sync_helpers import (
     sync_verification_methods,
 )
 from config_store import get_sync_config
+
+logger = logging.getLogger(__name__)
 
 try:
     from PyQt6.QtCore import QTimer
@@ -1443,9 +1446,13 @@ class DataSyncManager:
             local_conn.commit()
             local_cur.close()
             local_conn.close()
-        except Exception:
-            # Silent failure - no logging
-            pass
+        except Exception as e:
+            logger.warning(
+                "Failed to persist failed upload (student_no=%s, type=%s): %s",
+                log_data.get("student_no"),
+                log_data.get("log_type"),
+                e,
+            )
     
     def _retry_failed_uploads(self):
         """Retry uploading logs from failed_uploads table"""
@@ -1499,13 +1506,13 @@ class DataSyncManager:
                         local_cur.close()
                         local_conn.close()
                         uploaded_count += 1
-                    except Exception:
-                        # Silent failure - no logging
-                        pass
-            
-        except Exception:
-            # Silent failure - no logging
-            pass
+                    except Exception as e:
+                        logger.warning("Failed to delete retried failed_upload row id=%s: %s", failed_id, e)
+            if uploaded_count > 0:
+                logger.info("Retried and uploaded %d previously failed log(s)", uploaded_count)
+             
+        except Exception as e:
+            logger.warning("Retry failed_uploads pass encountered an error: %s", e)
     
     def _upload_pending_logs(self):
         """Upload pending logs from queue to cloud"""
@@ -1538,7 +1545,7 @@ class DataSyncManager:
                     failed += 1
                     
             except Exception as e:
-                # Silent failure - no logging
+                logger.warning("Queue upload operation failed (type=%s): %s", operation.get('type'), e)
                 failed += 1
                 if operation.get('retry_count', 0) < 5:
                     operation['retry_count'] = operation.get('retry_count', 0) + 1
@@ -1547,6 +1554,8 @@ class DataSyncManager:
                     # Max retries reached - save to persistent storage
                     if 'data' in operation:
                         self._save_failed_upload(operation['data'])
+        if uploaded or failed:
+            logger.info("Upload queue cycle complete: uploaded=%d failed=%d", uploaded, failed)
         
     
     def _upload_log_entry(self, log_data: dict) -> bool:
@@ -1595,7 +1604,12 @@ class DataSyncManager:
             return True
             
         except Exception as e:
-            # Silent failure - no logging
+            logger.warning(
+                "Cloud upload failed (student_no=%s, type=%s): %s",
+                log_data.get("student_no"),
+                log_data.get("log_type"),
+                e,
+            )
             if cloud_conn:
                 try:
                     cloud_conn.rollback()

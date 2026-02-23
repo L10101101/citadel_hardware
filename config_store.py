@@ -14,6 +14,14 @@ KEY_SMTP_PASSWORD = "smtp_password"
 KEY_TWILIO_AUTH_TOKEN = "twilio_auth_token"
 KEY_CRYPT_FERNET = "crypt_fernet_key"
 
+ENV_SECRET_MAP = {
+    KEY_LOCAL_DB_PASSWORD: "CITADEL_LOCAL_DB_PASSWORD",
+    KEY_CLOUD_DB_PASSWORD: "CITADEL_CLOUD_DB_PASSWORD",
+    KEY_SMTP_PASSWORD: "CITADEL_SMTP_PASSWORD",
+    KEY_TWILIO_AUTH_TOKEN: "CITADEL_TWILIO_AUTH_TOKEN",
+    KEY_CRYPT_FERNET: "CITADEL_FERNET_KEY",
+}
+
 DEFAULT_SYNC_CONFIG = {
     "sync_interval": 300,
     "upload_interval": 60,
@@ -122,6 +130,11 @@ def _save_encrypted_config(data: dict) -> bool:
         return False
 
 def _get_secret(key_name: str) -> str | None:
+    env_name = ENV_SECRET_MAP.get(key_name)
+    if env_name:
+        env_val = os.environ.get(env_name)
+        if env_val is not None and len(env_val) > 0:
+            return env_val
     kr = _get_keyring()
     if not kr:
         return None
@@ -155,6 +168,54 @@ def is_configured() -> bool:
         return False
     fernet = _get_secret(KEY_CRYPT_FERNET)
     return fernet is not None and len(fernet) > 0
+
+
+def validate_runtime_config() -> tuple[bool, str]:
+    """
+    Validate configuration needed for runtime startup.
+    Returns (True, "") when valid; otherwise (False, user_facing_message).
+    """
+    missing: list[str] = []
+    cfg = _get_encrypted_config() or {}
+
+    local = cfg.get("local_db", {}) if isinstance(cfg, dict) else {}
+    if not local.get("dbname"):
+        missing.append("Local DB name")
+    if not local.get("user"):
+        missing.append("Local DB user")
+    if not local.get("host"):
+        missing.append("Local DB host")
+    if not _get_secret(KEY_LOCAL_DB_PASSWORD):
+        missing.append("Local DB password (or CITADEL_LOCAL_DB_PASSWORD)")
+
+    cloud = cfg.get("cloud_db", {}) if isinstance(cfg, dict) else {}
+    if not cloud.get("dbname"):
+        missing.append("Cloud DB name")
+    if not cloud.get("user"):
+        missing.append("Cloud DB user")
+    if not cloud.get("host"):
+        missing.append("Cloud DB host")
+    if not _get_secret(KEY_CLOUD_DB_PASSWORD):
+        missing.append("Cloud DB password (or CITADEL_CLOUD_DB_PASSWORD)")
+
+    fernet_key = _get_secret(KEY_CRYPT_FERNET)
+    if not fernet_key:
+        missing.append("Fernet key (or CITADEL_FERNET_KEY)")
+    else:
+        try:
+            Fernet(fernet_key.encode() if isinstance(fernet_key, str) else fernet_key)
+        except Exception:
+            missing.append("Fernet key format is invalid")
+
+    if missing:
+        lines = "\n".join(f"- {item}" for item in missing)
+        return (
+            False,
+            "Configuration is incomplete or invalid.\n\n"
+            "Please update Citadel settings for:\n"
+            f"{lines}"
+        )
+    return True, ""
 
 def get_local_db() -> dict:
     config = _get_encrypted_config() or {}

@@ -1,4 +1,6 @@
 import cv2
+import time
+import os
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap
@@ -27,6 +29,11 @@ class CameraHandler:
     def __init__(self, main_window):
         self.main = main_window
         self.camera_thread = None
+        self._face_job_inflight = False
+        self._last_face_job_started_at = 0.0
+        self._face_job_interval_s = max(0.02, float(os.environ.get("FACE_JOB_INTERVAL_S", "0.05")))
+        self._display_frame_interval_s = max(0.0, float(os.environ.get("CAMERA_DISPLAY_FRAME_INTERVAL_S", "0.04")))
+        self._last_display_update_at = 0.0
         self._display_bgr = None
         self._display_info = None
         self.camera_window = None
@@ -95,7 +102,30 @@ class CameraHandler:
             self.camera_thread.stop()
             self.camera_thread.wait()
         self.camera_thread = None
+        self._face_job_inflight = False
         self.clear_camera_feed()
+
+    def _can_launch_face_job(self):
+        if not getattr(self.main, "verification_active", False):
+            return False
+        if not self.main.current_qr:
+            return False
+        existing = getattr(self.main, "face_thread", None)
+        if self._face_job_inflight:
+            return False
+        if existing and existing.isRunning():
+            self._face_job_inflight = True
+            return False
+        now = time.monotonic()
+        if (now - self._last_face_job_started_at) < self._face_job_interval_s:
+            return False
+        return True
+
+    def _on_face_thread_finished(self, thread_obj):
+        self._face_job_inflight = False
+        if getattr(self.main, "face_thread", None) is thread_obj:
+            self.main.face_thread = None
+        thread_obj.deleteLater()
 
     def update_camera_frame(self, frame):
         if self.main._suppress_feed:
@@ -103,32 +133,43 @@ class CameraHandler:
         label = self._target_label()
         if label is None:
             return
+        now = time.monotonic()
         self.main.original_frame = frame
-        h, w, _ = frame.shape
-        crop_size = min(h, w)
-        x_start = (w - crop_size) // 2
-        y_start = (h - crop_size) // 2
-        square_frame = frame[y_start:y_start + crop_size, x_start:x_start + crop_size]
+        should_update_display = (
+            self._display_info is None
+            or (now - self._last_display_update_at) >= self._display_frame_interval_s
+        )
+        if should_update_display:
+            h, w, _ = frame.shape
+            crop_size = min(h, w)
+            x_start = (w - crop_size) // 2
+            y_start = (h - crop_size) // 2
+            square_frame = frame[y_start:y_start + crop_size, x_start:x_start + crop_size]
 
-        target_size = min(max(1, label.width()), max(1, label.height()))
-        display_bgr = cv2.resize(square_frame, (target_size, target_size))
-        display_bgr = cv2.flip(display_bgr, 1)
+            target_size = min(max(1, label.width()), max(1, label.height()))
+            display_bgr = cv2.resize(square_frame, (target_size, target_size))
+            display_bgr = cv2.flip(display_bgr, 1)
 
-        self._display_bgr = display_bgr.copy()
-        self._display_info = {
-            "x_start": x_start,
-            "y_start": y_start,
-            "crop_size": crop_size,
-            "display_w": target_size,
-            "display_h": target_size,
-            "mirrored": True
-        }
-        self.update_pixmap(display_bgr)
+            self._display_bgr = display_bgr.copy()
+            self._display_info = {
+                "x_start": x_start,
+                "y_start": y_start,
+                "crop_size": crop_size,
+                "display_w": target_size,
+                "display_h": target_size,
+                "mirrored": True
+            }
+            self.update_pixmap(display_bgr)
+            self._last_display_update_at = now
 
-        if self.main.current_qr and self.main.gallery and (not hasattr(self.main, 'face_thread') or not self.main.face_thread.isRunning()):
-            self.main.face_thread = FaceThread(self.main.current_qr, self.main.original_frame, self.main.gallery)
-            self.main.face_thread.result_ready.connect(self.main.on_face_result)
-            self.main.face_thread.start()
+        if self._can_launch_face_job():
+            thread = FaceThread(self.main.current_qr, self.main.original_frame, self.main.gallery)
+            self.main.face_thread = thread
+            self._face_job_inflight = True
+            self._last_face_job_started_at = time.monotonic()
+            thread.result_ready.connect(self.main.on_face_result)
+            thread.finished.connect(lambda thr=thread: self._on_face_thread_finished(thr))
+            thread.start()
 
     def update_pixmap(self, bgr_frame):
         label = self._target_label()
@@ -146,6 +187,8 @@ class CameraHandler:
         label.setPixmap(pixmap)
 
     def draw_face_box(self, box, ok):
+        if self._display_info is None or self._display_bgr is None:
+            return
         x1, y1, x2, y2 = box
         info = self._display_info
         dx1 = max(0, min(info["crop_size"], x1 - info["x_start"]))

@@ -1,6 +1,8 @@
 import sys
 import time
-from collections import deque
+import os
+import logging
+from collections import deque, Counter
 import cv2
 
 from PyQt6.QtWidgets import (
@@ -47,6 +49,9 @@ from status_labels import (
     status_unrecognized,
 )
 from app_logging import configure_logging
+from face_lockout import FaceLockoutGuard
+
+logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow, Ui_Citadel):
     def __init__(self, sync_manager: DataSyncManager):
@@ -82,6 +87,25 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._face_min_verify_seconds = 1.2
         self._face_verify_started_at = 0.0
         self._face_accept_cooldown_until = 0.0
+        self._face_lockout = FaceLockoutGuard(
+            trigger_count=max(3, int(os.environ.get("FACE_LOCKOUT_TRIGGER_COUNT", "10"))),
+            lockout_seconds=max(0.5, float(os.environ.get("FACE_LOCKOUT_SECONDS", "1.5"))),
+            notice_interval_seconds=max(0.2, float(os.environ.get("FACE_LOCKOUT_NOTICE_INTERVAL", "0.6"))),
+        )
+        self._face_metrics_log_every = max(0, int(os.environ.get("FACE_RESULT_METRICS_LOG_EVERY", "0")))
+        self._face_metrics_total = 0
+        self._face_metrics_ok = 0
+        self._face_metrics_fail = 0
+        self._face_metrics_lockout_suppressed = 0
+        self._face_metrics_fail_reasons = Counter()
+        self._face_specific_errors = {
+            "Too dark",
+            "Too bright",
+            "Too blurry",
+            "Face too small",
+            "No Face Detected",
+            "Invalid Crop",
+        }
 
         self._init_summary_display()
         self._init_slideshow()
@@ -144,8 +168,11 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._reset_idle_sync_timer()
 
         try:
-            from face_recognition import load_gallery
+            from face_recognition import load_gallery, get_model_health
             self.gallery = load_gallery()
+            models_ok, model_msg = get_model_health()
+            if not models_ok:
+                self.set_status(model_msg, "#FF6666")
         except Exception:
             self.gallery = []
 
@@ -690,12 +717,36 @@ class MainWindow(QMainWindow, Ui_Citadel):
     def on_face_result(self, ok, info, box):
         if self._suppress_feed or not self.verification_active:
             return
+        if info in ("Recognition model unavailable", "Liveness model unavailable"):
+            self._record_face_result_metric(False, info)
+            self.camera_handler.stop_camera()
+            self.camera_handler.close_camera_window()
+            self.face_timeout_timer.stop()
+            self.reset_verification_state()
+            self.set_status(info, "#FF6666")
+            self.schedule_reset_info(7000)
+            return
         now = time.monotonic()
+        if self._face_lockout.in_lockout(now):
+            self._face_metrics_lockout_suppressed += 1
+            if self._face_lockout.should_emit_notice(now):
+                self.set_status("Hold still and center your face", "#FFA500")
+            if box:
+                self.camera_handler.draw_face_box(box, False)
+            return
+        self._record_face_result_metric(ok, info)
         self._face_vote_window.append(bool(ok))
         # Cooldown lock: after any failed frame, require short stable period before accepting.
         if not ok:
             self._face_accept_cooldown_until = now + 0.8
+            if self._face_lockout.register_result(False, now):
+                self._face_vote_window.clear()
+                self.set_status("Hold still and center your face", "#FFA500")
+                if box:
+                    self.camera_handler.draw_face_box(box, False)
+                return
         if ok:
+            self._face_lockout.register_result(True, now)
             enough_time = (now - self._face_verify_started_at) >= self._face_min_verify_seconds
             in_cooldown = now < self._face_accept_cooldown_until
             enough_votes = (
@@ -712,9 +763,39 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.qr_verified_success(self.current_qr, info)
             self.current_qr = None
         else:
-            status_unrecognized(self.set_status)
+            if isinstance(info, str) and info in self._face_specific_errors:
+                self.set_status(info, "#FF6666")
+            else:
+                status_unrecognized(self.set_status)
         if box:
             self.camera_handler.draw_face_box(box, ok)
+
+    def _record_face_result_metric(self, ok: bool, info) -> None:
+        if self._face_metrics_log_every <= 0:
+            return
+        self._face_metrics_total += 1
+        if ok:
+            self._face_metrics_ok += 1
+        else:
+            self._face_metrics_fail += 1
+            reason = info if isinstance(info, str) and info else "Unknown"
+            self._face_metrics_fail_reasons[reason] += 1
+        if self._face_metrics_total % self._face_metrics_log_every != 0:
+            return
+        success_rate = (self._face_metrics_ok / self._face_metrics_total) if self._face_metrics_total else 0.0
+        top_failures = ", ".join(
+            f"{name}:{count}"
+            for name, count in self._face_metrics_fail_reasons.most_common(3)
+        ) or "-"
+        logger.info(
+            "face_result_metrics total=%d ok=%d fail=%d success_rate=%.3f lockout_suppressed=%d top_failures=%s",
+            self._face_metrics_total,
+            self._face_metrics_ok,
+            self._face_metrics_fail,
+            success_rate,
+            self._face_metrics_lockout_suppressed,
+            top_failures,
+        )
 
     def qr_verified_success(self, student_no, name=None):
         student = lookup_student(student_no)
@@ -739,8 +820,12 @@ class MainWindow(QMainWindow, Ui_Citadel):
         notify_parent_task(student_no)
         notify_parent_sms_task(student_no)
         self.inactivity_timer.start()
+        # Keep student details visible, but allow next verification immediately.
+        self.verification_active = False
+        self.current_qr = None
         self.hiddenInput.setEnabled(True)
         self.fingerprint_thread.activate()
+        self._focus_hidden_input()
 
     def update_ui_verified(self, student_no, name, program, year_section, status, verification_mode=None):
         if getattr(self, "emergency_mode", None) and self.emergency_mode.active:
@@ -834,6 +919,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._face_vote_window.clear()
         self._face_verify_started_at = 0.0
         self._face_accept_cooldown_until = 0.0
+        self._face_lockout.reset()
         self.hiddenInput.setEnabled(True)
         self.fingerprint_thread.activate()
         self.camera_handler.stop_camera()
@@ -844,6 +930,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._face_vote_window.clear()
         self._face_verify_started_at = time.monotonic()
         self._face_accept_cooldown_until = self._face_verify_started_at
+        self._face_lockout.reset()
 
     def register_activity(self):
         self._reset_idle_sync_timer()
@@ -949,11 +1036,15 @@ if __name__ == "__main__":
     if not ok:
         QMessageBox.critical(None, "PostgreSQL Required", msg)
         sys.exit(1)
-    from config_store import is_configured
+    from config_store import is_configured, validate_runtime_config
     from setup_wizard import run_setup_wizard
     if not is_configured():
         if not run_setup_wizard():
             sys.exit(0)
+    valid_cfg, cfg_msg = validate_runtime_config()
+    if not valid_cfg:
+        QMessageBox.critical(None, "Configuration Required", cfg_msg)
+        sys.exit(1)
 
     sync_dlg = SyncDialog(title="Citadel", allow_offline=True)
     if sync_dlg.exec() != QDialog.DialogCode.Accepted:
