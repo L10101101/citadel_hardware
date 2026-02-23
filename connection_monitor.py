@@ -148,7 +148,7 @@ class ConnectionMonitor:
         pass
     
     def update_online_status_icons(self, is_online):
-        pixmap = QPixmap(80, 80)
+        pixmap = QPixmap(50, 50)
         pixmap.fill(Qt.GlobalColor.transparent)
         
         painter = QPainter(pixmap)
@@ -161,7 +161,7 @@ class ConnectionMonitor:
             painter.setBrush(QBrush(QColor(244, 67, 54)))
             painter.setPen(Qt.PenStyle.NoPen)
         
-        painter.drawEllipse(20, 20, 40, 40)
+        painter.drawEllipse(15, 15, 20, 20)
         painter.end()
         
         if hasattr(self.main_window, 'onlineLabel'):

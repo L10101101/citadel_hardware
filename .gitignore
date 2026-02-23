@@ -2,8 +2,8 @@
 .citadel/
 /database
 /dist
-/build/output
-/backup
+/build
+/archive
 /__pycache__
 /readmd/
 /venv
@@ -11,7 +11,7 @@
 /models/
 /scripts
 /.cursor
-/enroll
+/exit
 /build
 /cloud
 /docs

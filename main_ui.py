@@ -18,10 +18,8 @@ class Ui_Citadel(object):
         icon.addPixmap(QtGui.QPixmap(":/icons/assets/UCC_Logo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         Citadel.setWindowIcon(icon)
         Citadel.setAutoFillBackground(False)
-        Citadel.setStyleSheet("\n"
-"   \n"
-"* {\n"
-"    font-family: \'Poppins-Regular\', sans-serif;\n"
+        Citadel.setStyleSheet("* {\n"
+"    font-family: Poppins;\n"
 "}\n"
 "\n"
 "QMainWindow {\n"
@@ -34,30 +32,17 @@ class Ui_Citadel(object):
 "\n"
 "QWidget#titleWidget {\n"
 "    background-color: #064f32;\n"
-"    max-height: 100px;\n"
+"    border-bottom-left-radius: 20px;\n"
+"    border-bottom-right-radius: 20px;\n"
 "}\n"
-"\n"
-"QWidget#titleWidget_2 {\n"
-"    background-color: #064f32;\n"
-"    max-height: 100px;\n"
-"}\n"
-"\n"
-"QWidget#titleWidgetExit {\n"
-"    background-color: #064f32;\n"
-"    max-height: 100px;\n"
-"}\n"
-"\n"
 "\n"
 "QWidget#bodyWidget {\n"
 "    background-color: #E8EAF0;\n"
 "}\n"
 "\n"
-"QWidget#bodyWidget_2 {\n"
-"    background-color: #E8EAF0;\n"
-"}\n"
-"\n"
-"QWidget#bodyWidgetExit {\n"
-"    background-color: #E8EAF0;\n"
+"QWidget#displayWidget {\n"
+"    background-color: #FFFFFF;\n"
+"    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QWidget#detailsWidget {\n"
@@ -65,123 +50,33 @@ class Ui_Citadel(object):
 "    border-radius: 20px;\n"
 "}\n"
 "\n"
-"QWidget#detailsWidget_2 {\n"
-"        background-color: #FFFFFF;\n"
-"    border-radius: 20px;\n"
-"}\n"
-"\n"
-"QWidget#detailsWidgetExit {\n"
-"        background-color: #FFFFFF;\n"
+"QWidget#monitorWidget {\n"
+"    background-color: #fff;\n"
 "    border-radius: 20px;\n"
 "}\n"
 "\n"
 "QWidget#footerWidget {\n"
 "    background-color: #064f32;\n"
-"    max-height: 80px;\n"
+"    border-top-left-radius: 20px;\n"
+"    border-top-right-radius: 20px;\n"
 "}\n"
-"\n"
-"QWidget#footerWidget_2 {\n"
-"    background-color: #064f32;\n"
-"    max-height: 80px;\n"
-"}\n"
-"\n"
-"QWidget#footerWidgetExit {\n"
-"    background-color: #064f32;\n"
-"    max-height: 80px;\n"
-"}\n"
-"\n"
-"QLabel#logoLabel {\n"
-"    max-width: 80px;\n"
-"    max-height: 80px;\n"
-"    margin: 0px 20px;\n"
-"}\n"
-"\n"
-"QLabel#logoLabel_2 {\n"
-"    max-width: 80px;\n"
-"    max-height: 80px;\n"
-"    margin: 0px 20px;\n"
-"}\n"
-"\n"
-"QLabel#logoLabelExit {\n"
-"    max-width: 80px;\n"
-"    max-height: 80px;\n"
-"    margin: 0px 20px;\n"
-"}\n"
-"\n"
 "\n"
 "QLabel#schoolNameLabel {\n"
 "    color: #fff;\n"
-"    font-weight: bold;\n"
-"    font-size: 30px;\n"
-"    max-width: 500px;\n"
 "    qproperty-alignment: AlignBottom;\n"
 "}\n"
-"\n"
-"QLabel#schoolNameLabel_2 {\n"
-"    color: #fff;\n"
-"    font-weight: bold;\n"
-"    font-size: 30px;\n"
-"    max-width: 500px;\n"
-"    qproperty-alignment: AlignBottom;\n"
-"}\n"
-"\n"
-"QLabel#schoolNameLabelExit {\n"
-"    color: #fff;\n"
-"    font-weight: bold;\n"
-"    font-size: 30px;\n"
-"    max-width: 500px;\n"
-"    qproperty-alignment: AlignBottom;\n"
-"}\n"
-"\n"
 "\n"
 "QLabel#schoolSubLabel {\n"
 "    color: #fff;\n"
-"    font-size: 20px;\n"
-"}\n"
-"\n"
-"QLabel#schoolSubLabel_2 {\n"
-"    color: #fff;\n"
-"    font-size: 20px;\n"
-"}\n"
-"\n"
-"QLabel#schoolSubLabelExit {\n"
-"    color: #fff;\n"
-"    font-size: 20px;\n"
 "}\n"
 "\n"
 "QLabel#dateTimeLabel {\n"
 "    color: #fff;\n"
-"    font-size: 20px;\n"
-"    margin-right: 20px;\n"
-"}\n"
-"\n"
-"QLabel#dateTimeLabel_2 {\n"
-"    color: #fff;\n"
-"    font-size: 20px;\n"
-"    margin-right: 20px;\n"
-"}\n"
-"\n"
-"QLabel#dateTimeLabelExit {\n"
-"    color: #fff;\n"
-"    font-size: 20px;\n"
-"    margin-right: 20px;\n"
+"    font-weight: 900;\n"
 "}\n"
 "\n"
 "QLabel#footerLabel {\n"
 "    color: #fff;\n"
-"    font-weight: bold;\n"
-"    width: 100%;\n"
-"}\n"
-"\n"
-"QLabel#footerLabel_2 {\n"
-"    color: #fff;\n"
-"    font-weight: bold;\n"
-"    width: 100%;\n"
-"}\n"
-"\n"
-"QLabel#footerLabelExit {\n"
-"    color: #fff;\n"
-"    font-weight: bold;\n"
 "    width: 100%;\n"
 "}\n"
 "\n"
@@ -215,11 +110,6 @@ class Ui_Citadel(object):
 "    background-color: #fff;\n"
 "}\n"
 "\n"
-"QLabel#cameraFeed {\n"
-"    background-color: #fff;\n"
-"    border-radius: 20px;\n"
-"}\n"
-"\n"
 "QLabel#cameraFeed_2 {\n"
 "    background-color: #fff;\n"
 "    border-radius: 20px;\n"
@@ -228,6 +118,46 @@ class Ui_Citadel(object):
 "QLabel#cameraFeedExit {\n"
 "    background-color: #fff;\n"
 "    border-radius: 20px;\n"
+"}\n"
+"\n"
+"QLabel#firstDetailLabel,\n"
+"QLabel#secondDetailLabel,\n"
+"QLabel#thirdDetailLabel,\n"
+"QLabel#firstdetailLabel,\n"
+"QLabel#seconddetailLabel,\n"
+"QLabel#thirddetailLabel {\n"
+"    color: #FFFFFF;\n"
+"    border-radius: 12px;\n"
+"    padding: 10px;\n"
+"    min-height: 100px;\n"
+"    font-weight: 900;\n"
+"}\n"
+"\n"
+"QLabel#firstDetailLabel,\n"
+"QLabel#firstdetailLabel {\n"
+"    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
+"        stop:0 #064f32,\n"
+"        stop:0.02 #064f32,\n"
+"        stop:0.03 #2F8057,\n"
+"        stop:1 #0E603C);\n"
+"}\n"
+"\n"
+"QLabel#secondDetailLabel,\n"
+"QLabel#seconddetailLabel {\n"
+"    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
+"        stop:0 #1c855a,\n"
+"        stop:0.02 #1c855a,\n"
+"        stop:0.03 #5FB18A,\n"
+"        stop:1 #2E916A);\n"
+"}\n"
+"\n"
+"QLabel#thirdDetailLabel,\n"
+"QLabel#thirddetailLabel {\n"
+"    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n"
+"        stop:0 #3C8F3F,\n"
+"        stop:0.02 #3C8F3F,\n"
+"        stop:0.03 #7BC67F,\n"
+"        stop:1 #4A9B4E);\n"
 "}\n"
 "\n"
 "\n"
@@ -350,136 +280,158 @@ class Ui_Citadel(object):
 "}")
         self.centralwidget = QtWidgets.QWidget(parent=Citadel)
         self.centralwidget.setObjectName("centralwidget")
-        self.verticalLayout1 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout1.setObjectName("verticalLayout1")
-        self.stackedWidget = QtWidgets.QStackedWidget(parent=self.centralwidget)
-        self.stackedWidget.setObjectName("stackedWidget")
-        self.page_main = QtWidgets.QWidget()
-        self.page_main.setObjectName("page_main")
-        self.gridLayout_3 = QtWidgets.QGridLayout(self.page_main)
-        self.gridLayout_3.setObjectName("gridLayout_3")
+        self.gridLayout_2 = QtWidgets.QGridLayout(self.centralwidget)
+        self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_2.setSpacing(0)
+        self.gridLayout_2.setObjectName("gridLayout_2")
         self.mainLayout = QtWidgets.QVBoxLayout()
+        self.mainLayout.setSpacing(0)
         self.mainLayout.setObjectName("mainLayout")
-        self.titleWidget = QtWidgets.QWidget(parent=self.page_main)
+        self.titleWidget = QtWidgets.QWidget(parent=self.centralwidget)
         self.titleWidget.setEnabled(True)
-        self.titleWidget.setMinimumSize(QtCore.QSize(1280, 100))
-        self.titleWidget.setMaximumSize(QtCore.QSize(16777215, 100))
+        self.titleWidget.setMinimumSize(QtCore.QSize(1280, 120))
+        self.titleWidget.setMaximumSize(QtCore.QSize(16777215, 120))
         self.titleWidget.setObjectName("titleWidget")
-        self.horizontalLayout1 = QtWidgets.QHBoxLayout(self.titleWidget)
-        self.horizontalLayout1.setObjectName("horizontalLayout1")
-        self.titleLayout = QtWidgets.QHBoxLayout()
+        self.titleLayout = QtWidgets.QHBoxLayout(self.titleWidget)
+        self.titleLayout.setContentsMargins(10, 10, 10, 10)
+        self.titleLayout.setSpacing(10)
         self.titleLayout.setObjectName("titleLayout")
         self.logoLabel = QtWidgets.QLabel(parent=self.titleWidget)
-        self.logoLabel.setMinimumSize(QtCore.QSize(120, 50))
-        self.logoLabel.setMaximumSize(QtCore.QSize(120, 80))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.logoLabel.sizePolicy().hasHeightForWidth())
+        self.logoLabel.setSizePolicy(sizePolicy)
+        self.logoLabel.setMinimumSize(QtCore.QSize(100, 100))
+        self.logoLabel.setMaximumSize(QtCore.QSize(100, 100))
         self.logoLabel.setText("")
         self.logoLabel.setPixmap(QtGui.QPixmap("gui/assets/UCC_Logo.ico"))
         self.logoLabel.setScaledContents(True)
         self.logoLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.logoLabel.setObjectName("logoLabel")
         self.titleLayout.addWidget(self.logoLabel)
-        self.engLogoLabel = QtWidgets.QLabel(parent=self.titleWidget)
-        self.engLogoLabel.setMinimumSize(QtCore.QSize(80, 80))
-        self.engLogoLabel.setMaximumSize(QtCore.QSize(80, 80))
-        self.engLogoLabel.setText("")
-        self.engLogoLabel.setPixmap(QtGui.QPixmap("gui/assets/Engineering_Logo.ico"))
-        self.engLogoLabel.setScaledContents(True)
-        self.engLogoLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.engLogoLabel.setObjectName("engLogoLabel")
-        self.titleLayout.addWidget(self.engLogoLabel)
-        self.logoSpacer = QtWidgets.QLabel(parent=self.titleWidget)
-        self.logoSpacer.setMinimumSize(QtCore.QSize(20, 0))
-        self.logoSpacer.setMaximumSize(QtCore.QSize(20, 16777215))
-        self.logoSpacer.setText("")
-        self.logoSpacer.setObjectName("logoSpacer")
-        self.titleLayout.addWidget(self.logoSpacer)
-        self.schoolLayout = QtWidgets.QVBoxLayout()
+        self.projectLogoLabel = QtWidgets.QLabel(parent=self.titleWidget)
+        self.projectLogoLabel.setMinimumSize(QtCore.QSize(100, 100))
+        self.projectLogoLabel.setMaximumSize(QtCore.QSize(100, 100))
+        self.projectLogoLabel.setText("")
+        self.projectLogoLabel.setPixmap(QtGui.QPixmap("gui/assets/logo.png"))
+        self.projectLogoLabel.setScaledContents(True)
+        self.projectLogoLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.projectLogoLabel.setObjectName("projectLogoLabel")
+        self.titleLayout.addWidget(self.projectLogoLabel)
+        self.schoolWidget = QtWidgets.QWidget(parent=self.titleWidget)
+        self.schoolWidget.setObjectName("schoolWidget")
+        self.schoolLayout = QtWidgets.QVBoxLayout(self.schoolWidget)
+        self.schoolLayout.setContentsMargins(0, 0, 0, 0)
+        self.schoolLayout.setSpacing(7)
         self.schoolLayout.setObjectName("schoolLayout")
-        self.schoolNameLabel = QtWidgets.QLabel(parent=self.titleWidget)
+        self.schoolNameLabel = QtWidgets.QLabel(parent=self.schoolWidget)
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(25)
+        font.setBold(True)
+        self.schoolNameLabel.setFont(font)
         self.schoolNameLabel.setScaledContents(True)
         self.schoolNameLabel.setObjectName("schoolNameLabel")
         self.schoolLayout.addWidget(self.schoolNameLabel)
-        self.schoolSubLabel = QtWidgets.QLabel(parent=self.titleWidget)
+        self.schoolSubLabel = QtWidgets.QLabel(parent=self.schoolWidget)
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(20)
+        font.setBold(True)
+        font.setItalic(True)
+        self.schoolSubLabel.setFont(font)
         self.schoolSubLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignTop)
         self.schoolSubLabel.setObjectName("schoolSubLabel")
         self.schoolLayout.addWidget(self.schoolSubLabel)
-        self.titleLayout.addLayout(self.schoolLayout)
+        self.titleLayout.addWidget(self.schoolWidget)
         self.dateTimeLabel = QtWidgets.QLabel(parent=self.titleWidget)
-        self.dateTimeLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(29)
+        self.dateTimeLabel.setFont(font)
+        self.dateTimeLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.dateTimeLabel.setObjectName("dateTimeLabel")
         self.titleLayout.addWidget(self.dateTimeLabel)
         self.onlineLabel = QtWidgets.QLabel(parent=self.titleWidget)
-        self.onlineLabel.setMinimumSize(QtCore.QSize(80, 80))
-        self.onlineLabel.setMaximumSize(QtCore.QSize(80, 80))
+        self.onlineLabel.setMinimumSize(QtCore.QSize(50, 50))
+        self.onlineLabel.setMaximumSize(QtCore.QSize(50, 50))
         self.onlineLabel.setText("")
+        self.onlineLabel.setScaledContents(True)
         self.onlineLabel.setObjectName("onlineLabel")
         self.titleLayout.addWidget(self.onlineLabel)
-        self.horizontalLayout1.addLayout(self.titleLayout)
         self.mainLayout.addWidget(self.titleWidget)
-        self.bodyWidget = QtWidgets.QWidget(parent=self.page_main)
+        self.bodyWidget = QtWidgets.QWidget(parent=self.centralwidget)
         self.bodyWidget.setEnabled(True)
         self.bodyWidget.setMinimumSize(QtCore.QSize(0, 0))
         self.bodyWidget.setAutoFillBackground(False)
         self.bodyWidget.setObjectName("bodyWidget")
-        self.horizontalLayout2 = QtWidgets.QHBoxLayout(self.bodyWidget)
-        self.horizontalLayout2.setObjectName("horizontalLayout2")
-        self.bodyLayout = QtWidgets.QHBoxLayout()
+        self.bodyLayout = QtWidgets.QHBoxLayout(self.bodyWidget)
+        self.bodyLayout.setContentsMargins(11, 11, 11, 11)
+        self.bodyLayout.setSpacing(11)
         self.bodyLayout.setObjectName("bodyLayout")
-        self.cameraLayout = QtWidgets.QHBoxLayout()
-        self.cameraLayout.setContentsMargins(-1, 22, -1, 22)
-        self.cameraLayout.setObjectName("cameraLayout")
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.cameraLayout.addItem(spacerItem)
-        self.cameraFeed = QtWidgets.QLabel(parent=self.bodyWidget)
-        self.cameraFeed.setMinimumSize(QtCore.QSize(0, 0))
-        self.cameraFeed.setMaximumSize(QtCore.QSize(16662777, 16662777))
-        self.cameraFeed.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.cameraFeed.setText("")
-        self.cameraFeed.setTextFormat(QtCore.Qt.TextFormat.PlainText)
-        self.cameraFeed.setScaledContents(False)
-        self.cameraFeed.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.cameraFeed.setObjectName("cameraFeed")
-        self.cameraLayout.addWidget(self.cameraFeed)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.cameraLayout.addItem(spacerItem1)
-        self.bodyLayout.addLayout(self.cameraLayout)
-        self.detailsContainer = QtWidgets.QWidget(parent=self.bodyWidget)
-        self.detailsContainer.setObjectName("detailsContainer")
-        self.horizontalLayout3 = QtWidgets.QHBoxLayout(self.detailsContainer)
-        self.horizontalLayout3.setContentsMargins(-1, 22, -1, 22)
-        self.horizontalLayout3.setObjectName("horizontalLayout3")
-        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.horizontalLayout3.addItem(spacerItem2)
-        self.detailsWidget = QtWidgets.QWidget(parent=self.detailsContainer)
+        self.displayWidget = QtWidgets.QWidget(parent=self.bodyWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(7)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.displayWidget.sizePolicy().hasHeightForWidth())
+        self.displayWidget.setSizePolicy(sizePolicy)
+        self.displayWidget.setObjectName("displayWidget")
+        self.displayLayout = QtWidgets.QGridLayout(self.displayWidget)
+        self.displayLayout.setContentsMargins(0, 0, 0, 0)
+        self.displayLayout.setVerticalSpacing(0)
+        self.displayLayout.setObjectName("displayLayout")
+        self.detailsWidget = QtWidgets.QWidget(parent=self.displayWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.detailsWidget.sizePolicy().hasHeightForWidth())
+        self.detailsWidget.setSizePolicy(sizePolicy)
+        self.detailsWidget.setMinimumSize(QtCore.QSize(0, 0))
+        self.detailsWidget.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.detailsWidget.setObjectName("detailsWidget")
-        self.verticalLayout3 = QtWidgets.QVBoxLayout(self.detailsWidget)
-        self.verticalLayout3.setContentsMargins(40, 40, 40, 40)
-        self.verticalLayout3.setSpacing(10)
-        self.verticalLayout3.setObjectName("verticalLayout3")
-        self.detailsLayout = QtWidgets.QVBoxLayout()
-        self.detailsLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
-        self.detailsLayout.setContentsMargins(50, 50, 50, 0)
-        self.detailsLayout.setSpacing(15)
+        self.detailsLayout = QtWidgets.QVBoxLayout(self.detailsWidget)
+        self.detailsLayout.setContentsMargins(34, 30, 34, 30)
+        self.detailsLayout.setSpacing(5)
         self.detailsLayout.setObjectName("detailsLayout")
-        self.label_2 = QtWidgets.QLabel(parent=self.detailsWidget)
+        self.label = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
+        self.label.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
+        font.setFamily("Poppins")
         font.setPointSize(20)
         font.setBold(True)
-        self.label_2.setFont(font)
-        self.label_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.label_2.setObjectName("label_2")
-        self.detailsLayout.addWidget(self.label_2)
-        self.label_4 = QtWidgets.QLabel(parent=self.detailsWidget)
-        self.label_4.setText("")
-        self.label_4.setObjectName("label_4")
-        self.detailsLayout.addWidget(self.label_4)
+        self.label.setFont(font)
+        self.label.setLineWidth(1)
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label.setWordWrap(True)
+        self.label.setObjectName("label")
+        self.detailsLayout.addWidget(self.label)
+        self.spacerLabel_1 = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(4)
+        sizePolicy.setHeightForWidth(self.spacerLabel_1.sizePolicy().hasHeightForWidth())
+        self.spacerLabel_1.setSizePolicy(sizePolicy)
+        self.spacerLabel_1.setMinimumSize(QtCore.QSize(0, 50))
+        self.spacerLabel_1.setText("")
+        self.spacerLabel_1.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.spacerLabel_1.setObjectName("spacerLabel_1")
+        self.detailsLayout.addWidget(self.spacerLabel_1)
         self.nameLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.nameLabel.sizePolicy().hasHeightForWidth())
+        self.nameLabel.setSizePolicy(sizePolicy)
         self.nameLabel.setMinimumSize(QtCore.QSize(0, 0))
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(16)
-        font.setBold(False)
+        font.setFamily("Poppins")
+        font.setPointSize(18)
+        font.setBold(True)
         self.nameLabel.setFont(font)
         self.nameLabel.setAutoFillBackground(False)
         self.nameLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -488,22 +440,15 @@ class Ui_Citadel(object):
         self.nameLabel.setWordWrap(True)
         self.nameLabel.setObjectName("nameLabel")
         self.detailsLayout.addWidget(self.nameLabel)
-        self.idLabel = QtWidgets.QLabel(parent=self.detailsWidget)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(14)
-        self.idLabel.setFont(font)
-        self.idLabel.setAutoFillBackground(False)
-        self.idLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.idLabel.setScaledContents(True)
-        self.idLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.idLabel.setWordWrap(True)
-        self.idLabel.setObjectName("idLabel")
-        self.detailsLayout.addWidget(self.idLabel)
         self.programLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.programLabel.sizePolicy().hasHeightForWidth())
+        self.programLabel.setSizePolicy(sizePolicy)
         self.programLabel.setMinimumSize(QtCore.QSize(0, 0))
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
+        font.setFamily("Poppins")
         font.setPointSize(14)
         self.programLabel.setFont(font)
         self.programLabel.setAutoFillBackground(False)
@@ -514,19 +459,46 @@ class Ui_Citadel(object):
         self.programLabel.setObjectName("programLabel")
         self.detailsLayout.addWidget(self.programLabel)
         self.yearSecLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.yearSecLabel.sizePolicy().hasHeightForWidth())
+        self.yearSecLabel.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
+        font.setFamily("Poppins")
+        font.setPointSize(14)
         self.yearSecLabel.setFont(font)
         self.yearSecLabel.setScaledContents(True)
         self.yearSecLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.yearSecLabel.setWordWrap(True)
         self.yearSecLabel.setObjectName("yearSecLabel")
         self.detailsLayout.addWidget(self.yearSecLabel)
-        self.entryLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        self.idLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.idLabel.sizePolicy().hasHeightForWidth())
+        self.idLabel.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
+        font.setFamily("Poppins")
+        font.setPointSize(14)
+        self.idLabel.setFont(font)
+        self.idLabel.setAutoFillBackground(False)
+        self.idLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.idLabel.setScaledContents(True)
+        self.idLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.idLabel.setWordWrap(True)
+        self.idLabel.setObjectName("idLabel")
+        self.detailsLayout.addWidget(self.idLabel)
+        self.entryLabel = QtWidgets.QLabel(parent=self.detailsWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.entryLabel.sizePolicy().hasHeightForWidth())
+        self.entryLabel.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(14)
         self.entryLabel.setFont(font)
         self.entryLabel.setAutoFillBackground(False)
         self.entryLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -535,25 +507,24 @@ class Ui_Citadel(object):
         self.entryLabel.setWordWrap(True)
         self.entryLabel.setObjectName("entryLabel")
         self.detailsLayout.addWidget(self.entryLabel)
-        self.spacerLabel = QtWidgets.QLabel(parent=self.detailsWidget)
-        self.spacerLabel.setText("")
-        self.spacerLabel.setObjectName("spacerLabel")
-        self.detailsLayout.addWidget(self.spacerLabel)
-        self.horizontalLayout4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout4.setContentsMargins(125, 10, 125, 10)
-        self.horizontalLayout4.setObjectName("horizontalLayout4")
         self.statusWidget = QtWidgets.QWidget(parent=self.detailsWidget)
         self.statusWidget.setMinimumSize(QtCore.QSize(100, 50))
         self.statusWidget.setObjectName("statusWidget")
-        self.horizontalLayout5 = QtWidgets.QHBoxLayout(self.statusWidget)
-        self.horizontalLayout5.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout5.setObjectName("horizontalLayout5")
+        self.statusLayout = QtWidgets.QHBoxLayout(self.statusWidget)
+        self.statusLayout.setContentsMargins(55, 0, 55, 0)
+        self.statusLayout.setSpacing(0)
+        self.statusLayout.setObjectName("statusLayout")
         self.statusLabel = QtWidgets.QLabel(parent=self.statusWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.statusLabel.sizePolicy().hasHeightForWidth())
+        self.statusLabel.setSizePolicy(sizePolicy)
         self.statusLabel.setMinimumSize(QtCore.QSize(0, 0))
-        self.statusLabel.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.statusLabel.setMaximumSize(QtCore.QSize(400, 16777215))
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
+        font.setFamily("Poppins")
+        font.setPointSize(14)
         self.statusLabel.setFont(font)
         self.statusLabel.setAutoFillBackground(False)
         self.statusLabel.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -562,315 +533,126 @@ class Ui_Citadel(object):
         self.statusLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.statusLabel.setWordWrap(True)
         self.statusLabel.setObjectName("statusLabel")
-        self.horizontalLayout5.addWidget(self.statusLabel)
-        self.horizontalLayout4.addWidget(self.statusWidget)
-        self.detailsLayout.addLayout(self.horizontalLayout4)
-        self.label = QtWidgets.QLabel(parent=self.detailsWidget)
-        self.label.setText("")
-        self.label.setObjectName("label")
-        self.detailsLayout.addWidget(self.label)
-        self.verticalLayout3.addLayout(self.detailsLayout)
-        self.horizontalLayout3.addWidget(self.detailsWidget)
-        spacerItem3 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.horizontalLayout3.addItem(spacerItem3)
-        self.bodyLayout.addWidget(self.detailsContainer)
-        self.horizontalLayout2.addLayout(self.bodyLayout)
+        self.statusLayout.addWidget(self.statusLabel)
+        self.detailsLayout.addWidget(self.statusWidget)
+        self.displayLayout.addWidget(self.detailsWidget, 0, 0, 1, 1)
+        self.bodyLayout.addWidget(self.displayWidget)
+        self.monitorWidget = QtWidgets.QWidget(parent=self.bodyWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(3)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.monitorWidget.sizePolicy().hasHeightForWidth())
+        self.monitorWidget.setSizePolicy(sizePolicy)
+        self.monitorWidget.setMinimumSize(QtCore.QSize(0, 0))
+        self.monitorWidget.setObjectName("monitorWidget")
+        self.monitorLayout = QtWidgets.QVBoxLayout(self.monitorWidget)
+        self.monitorLayout.setContentsMargins(34, 30, 34, 30)
+        self.monitorLayout.setSpacing(20)
+        self.monitorLayout.setObjectName("monitorLayout")
+        self.summaryLabel = QtWidgets.QLabel(parent=self.monitorWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.summaryLabel.sizePolicy().hasHeightForWidth())
+        self.summaryLabel.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(20)
+        font.setBold(True)
+        self.summaryLabel.setFont(font)
+        self.summaryLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.summaryLabel.setObjectName("summaryLabel")
+        self.monitorLayout.addWidget(self.summaryLabel)
+        self.firstDetailLabel = QtWidgets.QLabel(parent=self.monitorWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(self.firstDetailLabel.sizePolicy().hasHeightForWidth())
+        self.firstDetailLabel.setSizePolicy(sizePolicy)
+        self.firstDetailLabel.setMinimumSize(QtCore.QSize(0, 120))
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(16)
+        font.setKerning(True)
+        font.setStyleStrategy(QtGui.QFont.StyleStrategy.PreferDefault)
+        self.firstDetailLabel.setFont(font)
+        self.firstDetailLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.firstDetailLabel.setObjectName("firstDetailLabel")
+        self.monitorLayout.addWidget(self.firstDetailLabel)
+        self.secondDetailLabel = QtWidgets.QLabel(parent=self.monitorWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(self.secondDetailLabel.sizePolicy().hasHeightForWidth())
+        self.secondDetailLabel.setSizePolicy(sizePolicy)
+        self.secondDetailLabel.setMinimumSize(QtCore.QSize(0, 120))
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(16)
+        font.setKerning(True)
+        self.secondDetailLabel.setFont(font)
+        self.secondDetailLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.secondDetailLabel.setObjectName("secondDetailLabel")
+        self.monitorLayout.addWidget(self.secondDetailLabel)
+        self.thirdDetailLabel = QtWidgets.QLabel(parent=self.monitorWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(2)
+        sizePolicy.setHeightForWidth(self.thirdDetailLabel.sizePolicy().hasHeightForWidth())
+        self.thirdDetailLabel.setSizePolicy(sizePolicy)
+        self.thirdDetailLabel.setMinimumSize(QtCore.QSize(0, 120))
+        font = QtGui.QFont()
+        font.setFamily("Poppins")
+        font.setPointSize(16)
+        font.setKerning(True)
+        self.thirdDetailLabel.setFont(font)
+        self.thirdDetailLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.thirdDetailLabel.setObjectName("thirdDetailLabel")
+        self.monitorLayout.addWidget(self.thirdDetailLabel)
+        self.bodyLayout.addWidget(self.monitorWidget)
         self.mainLayout.addWidget(self.bodyWidget)
-        self.footerWidget = QtWidgets.QWidget(parent=self.page_main)
-        self.footerWidget.setMinimumSize(QtCore.QSize(1280, 70))
-        self.footerWidget.setMaximumSize(QtCore.QSize(16777215, 80))
+        self.footerWidget = QtWidgets.QWidget(parent=self.centralwidget)
+        self.footerWidget.setMinimumSize(QtCore.QSize(1280, 120))
+        self.footerWidget.setMaximumSize(QtCore.QSize(16777215, 120))
         self.footerWidget.setObjectName("footerWidget")
-        self.footerHBox = QtWidgets.QHBoxLayout(self.footerWidget)
-        self.footerHBox.setObjectName("footerHBox")
+        self.footerLayout = QtWidgets.QHBoxLayout(self.footerWidget)
+        self.footerLayout.setContentsMargins(50, 0, 50, 0)
+        self.footerLayout.setSpacing(10)
+        self.footerLayout.setObjectName("footerLayout")
         self.footerLabel = QtWidgets.QLabel(parent=self.footerWidget)
         font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(10)
+        font.setFamily("Poppins")
+        font.setPointSize(14)
         font.setBold(True)
         self.footerLabel.setFont(font)
         self.footerLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.footerLabel.setWordWrap(False)
         self.footerLabel.setObjectName("footerLabel")
-        self.footerHBox.addWidget(self.footerLabel)
+        self.footerLayout.addWidget(self.footerLabel)
         self.mainLayout.addWidget(self.footerWidget)
-        self.gridLayout_3.addLayout(self.mainLayout, 0, 0, 1, 1)
-        self.stackedWidget.addWidget(self.page_main)
-        self.page_exit = QtWidgets.QWidget()
-        self.page_exit.setObjectName("page_exit")
-        self.gridLayout_2 = QtWidgets.QGridLayout(self.page_exit)
-        self.gridLayout_2.setObjectName("gridLayout_2")
-        self.gridLayout = QtWidgets.QGridLayout()
-        self.gridLayout.setObjectName("gridLayout")
-        self.titleWidgetExit = QtWidgets.QWidget(parent=self.page_exit)
-        self.titleWidgetExit.setEnabled(True)
-        self.titleWidgetExit.setMinimumSize(QtCore.QSize(1280, 100))
-        self.titleWidgetExit.setMaximumSize(QtCore.QSize(16777215, 100))
-        self.titleWidgetExit.setObjectName("titleWidgetExit")
-        self.horizontalLayout1_3 = QtWidgets.QHBoxLayout(self.titleWidgetExit)
-        self.horizontalLayout1_3.setObjectName("horizontalLayout1_3")
-        self.titleLayoutExit = QtWidgets.QHBoxLayout()
-        self.titleLayoutExit.setObjectName("titleLayoutExit")
-        self.logoLabelExit = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.logoLabelExit.setMinimumSize(QtCore.QSize(120, 50))
-        self.logoLabelExit.setMaximumSize(QtCore.QSize(120, 80))
-        self.logoLabelExit.setText("")
-        self.logoLabelExit.setPixmap(QtGui.QPixmap("gui/assets/UCC_Logo.ico"))
-        self.logoLabelExit.setScaledContents(True)
-        self.logoLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.logoLabelExit.setObjectName("logoLabelExit")
-        self.titleLayoutExit.addWidget(self.logoLabelExit)
-        self.engLogoLabelExit = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.engLogoLabelExit.setMinimumSize(QtCore.QSize(80, 80))
-        self.engLogoLabelExit.setMaximumSize(QtCore.QSize(80, 80))
-        self.engLogoLabelExit.setText("")
-        self.engLogoLabelExit.setPixmap(QtGui.QPixmap("gui/assets/Engineering_Logo.ico"))
-        self.engLogoLabelExit.setScaledContents(True)
-        self.engLogoLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.engLogoLabelExit.setObjectName("engLogoLabelExit")
-        self.titleLayoutExit.addWidget(self.engLogoLabelExit)
-        self.logoSpacer_3 = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.logoSpacer_3.setMinimumSize(QtCore.QSize(20, 0))
-        self.logoSpacer_3.setMaximumSize(QtCore.QSize(20, 16777215))
-        self.logoSpacer_3.setText("")
-        self.logoSpacer_3.setObjectName("logoSpacer_3")
-        self.titleLayoutExit.addWidget(self.logoSpacer_3)
-        self.schoolLayoutExit = QtWidgets.QVBoxLayout()
-        self.schoolLayoutExit.setObjectName("schoolLayoutExit")
-        self.schoolNameLabelExit = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.schoolNameLabelExit.setScaledContents(True)
-        self.schoolNameLabelExit.setObjectName("schoolNameLabelExit")
-        self.schoolLayoutExit.addWidget(self.schoolNameLabelExit)
-        self.schoolSubLabelExit = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.schoolSubLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignTop)
-        self.schoolSubLabelExit.setObjectName("schoolSubLabelExit")
-        self.schoolLayoutExit.addWidget(self.schoolSubLabelExit)
-        self.titleLayoutExit.addLayout(self.schoolLayoutExit)
-        self.dateTimeLabelExit = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.dateTimeLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.dateTimeLabelExit.setObjectName("dateTimeLabelExit")
-        self.titleLayoutExit.addWidget(self.dateTimeLabelExit)
-        self.onlineLabel_2 = QtWidgets.QLabel(parent=self.titleWidgetExit)
-        self.onlineLabel_2.setMinimumSize(QtCore.QSize(80, 80))
-        self.onlineLabel_2.setMaximumSize(QtCore.QSize(80, 80))
-        self.onlineLabel_2.setText("")
-        self.onlineLabel_2.setObjectName("onlineLabel_2")
-        self.titleLayoutExit.addWidget(self.onlineLabel_2)
-        self.horizontalLayout1_3.addLayout(self.titleLayoutExit)
-        self.gridLayout.addWidget(self.titleWidgetExit, 0, 0, 1, 1)
-        self.bodyWidgetExit = QtWidgets.QWidget(parent=self.page_exit)
-        self.bodyWidgetExit.setEnabled(True)
-        self.bodyWidgetExit.setMinimumSize(QtCore.QSize(0, 0))
-        self.bodyWidgetExit.setAutoFillBackground(False)
-        self.bodyWidgetExit.setObjectName("bodyWidgetExit")
-        self.horizontalLayout2_2 = QtWidgets.QHBoxLayout(self.bodyWidgetExit)
-        self.horizontalLayout2_2.setObjectName("horizontalLayout2_2")
-        self.bodyLayoutExit = QtWidgets.QHBoxLayout()
-        self.bodyLayoutExit.setObjectName("bodyLayoutExit")
-        self.cameraLayoutExit = QtWidgets.QHBoxLayout()
-        self.cameraLayoutExit.setContentsMargins(-1, 22, -1, 22)
-        self.cameraLayoutExit.setObjectName("cameraLayoutExit")
-        spacerItem4 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.cameraLayoutExit.addItem(spacerItem4)
-        self.cameraFeedExit = QtWidgets.QLabel(parent=self.bodyWidgetExit)
-        self.cameraFeedExit.setMinimumSize(QtCore.QSize(0, 0))
-        self.cameraFeedExit.setMaximumSize(QtCore.QSize(16662777, 16662777))
-        self.cameraFeedExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.cameraFeedExit.setText("")
-        self.cameraFeedExit.setTextFormat(QtCore.Qt.TextFormat.PlainText)
-        self.cameraFeedExit.setScaledContents(False)
-        self.cameraFeedExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.cameraFeedExit.setObjectName("cameraFeedExit")
-        self.cameraLayoutExit.addWidget(self.cameraFeedExit)
-        spacerItem5 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.cameraLayoutExit.addItem(spacerItem5)
-        self.bodyLayoutExit.addLayout(self.cameraLayoutExit)
-        self.detailsContainerExit = QtWidgets.QWidget(parent=self.bodyWidgetExit)
-        self.detailsContainerExit.setObjectName("detailsContainerExit")
-        self.horizontalLayout3_3 = QtWidgets.QHBoxLayout(self.detailsContainerExit)
-        self.horizontalLayout3_3.setContentsMargins(-1, 22, -1, 22)
-        self.horizontalLayout3_3.setObjectName("horizontalLayout3_3")
-        spacerItem6 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.horizontalLayout3_3.addItem(spacerItem6)
-        self.detailsWidgetExit = QtWidgets.QWidget(parent=self.detailsContainerExit)
-        self.detailsWidgetExit.setObjectName("detailsWidgetExit")
-        self.verticalLayout3_2 = QtWidgets.QVBoxLayout(self.detailsWidgetExit)
-        self.verticalLayout3_2.setContentsMargins(40, 40, 40, 40)
-        self.verticalLayout3_2.setSpacing(10)
-        self.verticalLayout3_2.setObjectName("verticalLayout3_2")
-        self.detailsLayoutExit = QtWidgets.QVBoxLayout()
-        self.detailsLayoutExit.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
-        self.detailsLayoutExit.setContentsMargins(50, 50, 50, 0)
-        self.detailsLayoutExit.setSpacing(15)
-        self.detailsLayoutExit.setObjectName("detailsLayoutExit")
-        self.label_3 = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(20)
-        font.setBold(True)
-        self.label_3.setFont(font)
-        self.label_3.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.label_3.setObjectName("label_3")
-        self.detailsLayoutExit.addWidget(self.label_3)
-        self.label_5 = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        self.label_5.setText("")
-        self.label_5.setObjectName("label_5")
-        self.detailsLayoutExit.addWidget(self.label_5)
-        self.nameLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        self.nameLabelExit.setMinimumSize(QtCore.QSize(0, 0))
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(16)
-        font.setBold(False)
-        self.nameLabelExit.setFont(font)
-        self.nameLabelExit.setAutoFillBackground(False)
-        self.nameLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.nameLabelExit.setScaledContents(True)
-        self.nameLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.nameLabelExit.setWordWrap(True)
-        self.nameLabelExit.setObjectName("nameLabelExit")
-        self.detailsLayoutExit.addWidget(self.nameLabelExit)
-        self.idLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(14)
-        self.idLabelExit.setFont(font)
-        self.idLabelExit.setAutoFillBackground(False)
-        self.idLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.idLabelExit.setScaledContents(True)
-        self.idLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.idLabelExit.setWordWrap(True)
-        self.idLabelExit.setObjectName("idLabelExit")
-        self.detailsLayoutExit.addWidget(self.idLabelExit)
-        self.programLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        self.programLabelExit.setMinimumSize(QtCore.QSize(0, 0))
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(14)
-        self.programLabelExit.setFont(font)
-        self.programLabelExit.setAutoFillBackground(False)
-        self.programLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.programLabelExit.setScaledContents(True)
-        self.programLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.programLabelExit.setWordWrap(True)
-        self.programLabelExit.setObjectName("programLabelExit")
-        self.detailsLayoutExit.addWidget(self.programLabelExit)
-        self.yearSecLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
-        self.yearSecLabelExit.setFont(font)
-        self.yearSecLabelExit.setScaledContents(True)
-        self.yearSecLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.yearSecLabelExit.setWordWrap(True)
-        self.yearSecLabelExit.setObjectName("yearSecLabelExit")
-        self.detailsLayoutExit.addWidget(self.yearSecLabelExit)
-        self.entryLabelExit = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
-        self.entryLabelExit.setFont(font)
-        self.entryLabelExit.setAutoFillBackground(False)
-        self.entryLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.entryLabelExit.setScaledContents(True)
-        self.entryLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.entryLabelExit.setWordWrap(True)
-        self.entryLabelExit.setObjectName("entryLabelExit")
-        self.detailsLayoutExit.addWidget(self.entryLabelExit)
-        self.spacerLabel_2 = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        self.spacerLabel_2.setText("")
-        self.spacerLabel_2.setObjectName("spacerLabel_2")
-        self.detailsLayoutExit.addWidget(self.spacerLabel_2)
-        self.horizontalLayout4_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout4_2.setContentsMargins(125, 10, 125, 10)
-        self.horizontalLayout4_2.setObjectName("horizontalLayout4_2")
-        self.statusWidgetExit = QtWidgets.QWidget(parent=self.detailsWidgetExit)
-        self.statusWidgetExit.setMinimumSize(QtCore.QSize(100, 50))
-        self.statusWidgetExit.setObjectName("statusWidgetExit")
-        self.horizontalLayout5_3 = QtWidgets.QHBoxLayout(self.statusWidgetExit)
-        self.horizontalLayout5_3.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout5_3.setObjectName("horizontalLayout5_3")
-        self.statusLabelExit = QtWidgets.QLabel(parent=self.statusWidgetExit)
-        self.statusLabelExit.setMinimumSize(QtCore.QSize(0, 0))
-        self.statusLabelExit.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(12)
-        self.statusLabelExit.setFont(font)
-        self.statusLabelExit.setAutoFillBackground(False)
-        self.statusLabelExit.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.statusLabelExit.setText("")
-        self.statusLabelExit.setScaledContents(True)
-        self.statusLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.statusLabelExit.setWordWrap(True)
-        self.statusLabelExit.setObjectName("statusLabelExit")
-        self.horizontalLayout5_3.addWidget(self.statusLabelExit)
-        self.horizontalLayout4_2.addWidget(self.statusWidgetExit)
-        self.detailsLayoutExit.addLayout(self.horizontalLayout4_2)
-        self.spacerLabel_3 = QtWidgets.QLabel(parent=self.detailsWidgetExit)
-        self.spacerLabel_3.setText("")
-        self.spacerLabel_3.setObjectName("spacerLabel_3")
-        self.detailsLayoutExit.addWidget(self.spacerLabel_3)
-        self.verticalLayout3_2.addLayout(self.detailsLayoutExit)
-        self.horizontalLayout3_3.addWidget(self.detailsWidgetExit)
-        spacerItem7 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
-        self.horizontalLayout3_3.addItem(spacerItem7)
-        self.bodyLayoutExit.addWidget(self.detailsContainerExit)
-        self.horizontalLayout2_2.addLayout(self.bodyLayoutExit)
-        self.gridLayout.addWidget(self.bodyWidgetExit, 1, 0, 1, 1)
-        self.footerWidgetExit = QtWidgets.QWidget(parent=self.page_exit)
-        self.footerWidgetExit.setMinimumSize(QtCore.QSize(1280, 70))
-        self.footerWidgetExit.setMaximumSize(QtCore.QSize(16777215, 80))
-        self.footerWidgetExit.setObjectName("footerWidgetExit")
-        self.footerHBox_3 = QtWidgets.QHBoxLayout(self.footerWidgetExit)
-        self.footerHBox_3.setObjectName("footerHBox_3")
-        self.footerLabelExit = QtWidgets.QLabel(parent=self.footerWidgetExit)
-        font = QtGui.QFont()
-        font.setFamily("Poppins-Regular")
-        font.setPointSize(10)
-        font.setBold(True)
-        self.footerLabelExit.setFont(font)
-        self.footerLabelExit.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.footerLabelExit.setWordWrap(False)
-        self.footerLabelExit.setObjectName("footerLabelExit")
-        self.footerHBox_3.addWidget(self.footerLabelExit)
-        self.gridLayout.addWidget(self.footerWidgetExit, 2, 0, 1, 1)
-        self.gridLayout_2.addLayout(self.gridLayout, 0, 0, 1, 1)
-        self.stackedWidget.addWidget(self.page_exit)
-        self.verticalLayout1.addWidget(self.stackedWidget)
+        self.gridLayout_2.addLayout(self.mainLayout, 0, 0, 1, 1)
         Citadel.setCentralWidget(self.centralwidget)
-        self.toolBar = QtWidgets.QToolBar(parent=Citadel)
-        self.toolBar.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-        self.toolBar.setObjectName("toolBar")
-        Citadel.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
 
         self.retranslateUi(Citadel)
-        self.stackedWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Citadel)
 
     def retranslateUi(self, Citadel):
         _translate = QtCore.QCoreApplication.translate
         Citadel.setWindowTitle(_translate("Citadel", "Citadel"))
         self.schoolNameLabel.setText(_translate("Citadel", "University of Caloocan City"))
-        self.schoolSubLabel.setText(_translate("Citadel", "Bagong Silang Campus | College of Engineering"))
-        self.dateTimeLabel.setText(_translate("Citadel", "October 15, 2025 | 05:00AM"))
-        self.label_2.setText(_translate("Citadel", "STUDENT DATA"))
+        self.schoolSubLabel.setText(_translate("Citadel", "Citadel Monitoring System"))
+        self.dateTimeLabel.setText(_translate("Citadel", "JAN 01, 2026 - 12:00AM"))
+        self.label.setText(_translate("Citadel", "STUDENT DATA"))
         self.nameLabel.setText(_translate("Citadel", "Name"))
-        self.idLabel.setText(_translate("Citadel", "ID"))
         self.programLabel.setText(_translate("Citadel", "Program"))
         self.yearSecLabel.setText(_translate("Citadel", "Year and Section"))
+        self.idLabel.setText(_translate("Citadel", "ID"))
         self.entryLabel.setText(_translate("Citadel", "Time"))
+        self.summaryLabel.setText(_translate("Citadel", "SUMMARY"))
+        self.firstDetailLabel.setText(_translate("Citadel", "STUDENTS INSIDE"))
+        self.secondDetailLabel.setText(_translate("Citadel", "STUDENTS OUTSIDE"))
+        self.thirdDetailLabel.setText(_translate("Citadel", "TOTAL NO. OF STUDENTS"))
         self.footerLabel.setText(_translate("Citadel", "Welcome to University of Caloocan City | Please scan your QR code and verify through biometrics for secure access."))
-        self.schoolNameLabelExit.setText(_translate("Citadel", "University of Caloocan City"))
-        self.schoolSubLabelExit.setText(_translate("Citadel", "Bagong Silang Campus | College of Engineering"))
-        self.dateTimeLabelExit.setText(_translate("Citadel", "October 15, 2025 | 05:00AM"))
-        self.label_3.setText(_translate("Citadel", "STUDENT DATA"))
-        self.nameLabelExit.setText(_translate("Citadel", "Name"))
-        self.idLabelExit.setText(_translate("Citadel", "ID"))
-        self.programLabelExit.setText(_translate("Citadel", "Program"))
-        self.yearSecLabelExit.setText(_translate("Citadel", "Year and Section"))
-        self.entryLabelExit.setText(_translate("Citadel", "Time"))
-        self.footerLabelExit.setText(_translate("Citadel", "Welcome to University of Caloocan City | Please scan your QR code and verify through biometrics for secure access."))
-        self.toolBar.setWindowTitle(_translate("Citadel", "toolBar"))
 
 
 if __name__ == "__main__":

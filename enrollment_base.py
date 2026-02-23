@@ -1,9 +1,12 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap, QImage
+import logging
 from face_enroll_worker import FaceEnrollWorker
 from utils import resource_path
 from finger_enroll_thread import FingerEnrollWorker
 from db_utils import get_connection
+
+logger = logging.getLogger(__name__)
 
 
 class BaseEnrollmentHandler:    
@@ -164,7 +167,7 @@ class BaseEnrollmentHandler:
             conn.close()
             return found
         except Exception as e:
-            print(f"[ERROR] Database check failed: {e}")
+            logger.error("Database check failed for student %s: %s", student_no, e)
             return False
     
     def is_already_enrolled(self, student_no, mode):
@@ -186,7 +189,7 @@ class BaseEnrollmentHandler:
             conn.close()
             return exists
         except Exception as e:
-            print(f"[ERROR] Enrollment check failed: {e}")
+            logger.error("Enrollment check failed for student %s mode %s: %s", student_no, mode, e)
             return False
     
     def on_enroll_done(self, success, msg):

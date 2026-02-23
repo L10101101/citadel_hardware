@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QTimer, QDateTime, Qt, QSettings, QEventLoop, QEvent
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QTransform, QPainter, QColor
+import gui.resource_rc
 from enroll_ui import Ui_EnrollWindow
 from login_ui import Ui_LoginDialog
 from enrollment_base import BaseEnrollmentHandler
@@ -26,6 +27,8 @@ from config_store import is_configured
 from setup_wizard import run_setup_wizard
 from utils import resource_path, set_sync_manager
 from sync_dialog import SyncDialog
+from data_sync import DataSyncManager
+from app_logging import configure_logging
 
 try:
     import bcrypt
@@ -534,12 +537,15 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
     def _get_sync_icon_pixmap(self):
         try:
             icon = self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
-            pix = icon.pixmap(64, 64)
+            dpr = self.devicePixelRatioF() if hasattr(self, "devicePixelRatioF") else 1.0
+            base_size = int(max(256, 256 * dpr))
+            pix = icon.pixmap(base_size, base_size)
             if not pix.isNull():
                 tinted = QPixmap(pix.size())
                 tinted.fill(Qt.GlobalColor.transparent)
                 painter = QPainter(tinted)
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
                 painter.drawPixmap(0, 0, pix)
                 painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
@@ -548,7 +554,7 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
                 return tinted
         except Exception:
             pass
-        return QPixmap(64, 64)
+        return QPixmap(256, 256)
 
     def _set_sync_icon(self, rotation_degrees=0):
         if not hasattr(self, "syncLabel") or not self.syncLabel:
@@ -575,6 +581,8 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
         canvas = QPixmap(size, size)
         canvas.fill(Qt.GlobalColor.transparent)
         painter = QPainter(canvas)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         x = int((size - base.width()) / 2)
         y = int((size - base.height()) / 2)
         painter.drawPixmap(x, y, base)
@@ -626,8 +634,8 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
 
     def update_datetime(self):
         now = QDateTime.currentDateTime()
-        date_str = now.toString("MMMM dd, yyyy | hh:mm AP")
-        self.dateTimeLabel.setText(date_str)
+        self.dateTimeLabel.setText(QDateTime.currentDateTime().toString("MMM dd, yyyy - hh:mm AP").upper())
+
 
     def eventFilter(self, obj, event):
         if obj == self.syncLabel and event.type() == QEvent.Type.MouseButtonPress:
@@ -698,14 +706,38 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
         self._upload_dialog.hide()
     """
     def closeEvent(self, event):
-        reply = QMessageBox.question(
-            self,
-            "Exit Enrollment",
-            "Exit Application?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+        confirm = QMessageBox(self)
+        confirm.setWindowTitle("Exit Enrollment")
+        confirm.setText("Exit Application?")
+        confirm.setIcon(QMessageBox.Icon.Question)
+        confirm.setWindowFlags(
+            Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint
         )
-        if reply == QMessageBox.StandardButton.Yes:
+        yes_btn = confirm.addButton("Yes", QMessageBox.ButtonRole.AcceptRole)
+        no_btn = confirm.addButton("No", QMessageBox.ButtonRole.RejectRole)
+        confirm.setDefaultButton(no_btn)
+        confirm.setStyleSheet(
+            """
+            QMessageBox {
+                background-color: #f7f9fb;
+            }
+            QLabel {
+                color: #1f1f1f;
+                font-weight: bold;
+            }
+            QPushButton {
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: bold;
+                min-width: 90px;
+            }
+            """
+        )
+        yes_btn.setStyleSheet("background-color: #2E7D32; color: white;")
+        no_btn.setStyleSheet("background-color: #E0E0E0; color: #C62828;")
+        confirm.exec()
+
+        if confirm.clickedButton() == yes_btn:
             self.stop_enrollment()
             if hasattr(self, "sync_manager") and self.sync_manager:
                 self.sync_manager.stop()
@@ -715,6 +747,7 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
 
 
 def main():
+    configure_logging("citadel-enroll")
     app = QApplication(sys.argv)
     from system_checks import check_postgresql_installed
     ok, msg = check_postgresql_installed()
@@ -742,7 +775,8 @@ def main():
     if login.exec() != QDialog.DialogCode.Accepted:
         sys.exit(0)
 
-    sync_dlg = SyncDialog(title="Citadel Enrollment")
+    enroll_sync_manager = DataSyncManager(sync_slideshow=False)
+    sync_dlg = SyncDialog(title="Citadel Enrollment", sync_manager=enroll_sync_manager)
     if sync_dlg.exec() != QDialog.DialogCode.Accepted:
         sys.exit(0)
 
@@ -754,3 +788,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

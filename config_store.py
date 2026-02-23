@@ -14,6 +14,37 @@ KEY_SMTP_PASSWORD = "smtp_password"
 KEY_TWILIO_AUTH_TOKEN = "twilio_auth_token"
 KEY_CRYPT_FERNET = "crypt_fernet_key"
 
+DEFAULT_SYNC_CONFIG = {
+    "sync_interval": 300,
+    "upload_interval": 60,
+    "reference_tables": ["programs", "year_sections"],
+    "verification_methods": {
+        "table": "verification_methods",
+        "id_column": "id",
+        "method_column": "method",
+    },
+    "students": {
+        "table": "students",
+        "updated_at_column": "updated_at",
+        "facial_data_column": "facial_recognition_data",
+        "facial_flag_column": "has_facial_recognition",
+    },
+    "fingerprints": {
+        "table": "fingerprints",
+        "updated_at_column": "updated_at",
+        "template_column": "template",
+    },
+}
+
+DEFAULT_SLIDESHOW_CONFIG = {
+    "interval": 5,
+    "images": [],
+}
+
+DEFAULT_APP_CONFIG = {
+    "run_main_on_startup": False,
+}
+
 def _get_config_dir() -> Path:
     if os.name == "nt":
         base = os.environ.get("APPDATA", os.path.expanduser("~"))
@@ -190,6 +221,50 @@ def get_twilio_config() -> dict:
 def get_fernet_key() -> str | None:
     return _get_secret(KEY_CRYPT_FERNET)
 
+def get_slideshow_config() -> dict:
+    config = _get_encrypted_config() or {}
+    slideshow = config.get("slideshow", {}) if isinstance(config, dict) else {}
+    merged = dict(DEFAULT_SLIDESHOW_CONFIG)
+    if isinstance(slideshow, dict):
+        merged.update(slideshow)
+    images = merged.get("images")
+    if isinstance(images, str):
+        merged["images"] = [p.strip() for p in images.split(";") if p.strip()]
+    elif not isinstance(images, list):
+        merged["images"] = []
+    try:
+        merged["interval"] = int(merged.get("interval", 5))
+    except (TypeError, ValueError):
+        merged["interval"] = DEFAULT_SLIDESHOW_CONFIG["interval"]
+    return merged
+
+def get_sync_config() -> dict:
+    config = _get_encrypted_config() or {}
+    sync = config.get("sync", {}) if isinstance(config, dict) else {}
+    merged = dict(DEFAULT_SYNC_CONFIG)
+    # shallow merge dicts
+    for key, val in sync.items() if isinstance(sync, dict) else []:
+        if isinstance(val, dict) and isinstance(merged.get(key), dict):
+            merged[key] = {**merged[key], **val}
+        else:
+            merged[key] = val
+    # Normalize reference tables to list
+    ref_tables = merged.get("reference_tables")
+    if isinstance(ref_tables, str):
+        merged["reference_tables"] = [t.strip() for t in ref_tables.split(",") if t.strip()]
+    elif not isinstance(ref_tables, list):
+        merged["reference_tables"] = list(DEFAULT_SYNC_CONFIG["reference_tables"])
+    return merged
+
+def get_app_config() -> dict:
+    config = _get_encrypted_config() or {}
+    app_cfg = config.get("app", {}) if isinstance(config, dict) else {}
+    merged = dict(DEFAULT_APP_CONFIG)
+    if isinstance(app_cfg, dict):
+        merged.update(app_cfg)
+    merged["run_main_on_startup"] = bool(merged.get("run_main_on_startup", False))
+    return merged
+
 def save_config(
     local_db: dict,
     local_db_password: str,
@@ -200,6 +275,9 @@ def save_config(
     twilio: dict,
     twilio_auth_token: str,
     fernet_key: str | None = None,
+    sync: dict | None = None,
+    slideshow: dict | None = None,
+    app: dict | None = None,
 ) -> bool:
 
     kr = _get_keyring()
@@ -212,6 +290,7 @@ def save_config(
         if not _set_config_key(config_key):
             return False
 
+    existing = _get_encrypted_config() or {}
     config = {
         "local_db": {
             "dbname": local_db.get("dbname", ""),
@@ -240,6 +319,9 @@ def save_config(
             "phone_number": twilio.get("phone_number", ""),
             "messaging_sid": twilio.get("messaging_sid", ""),
         },
+        "sync": sync if sync is not None else existing.get("sync", DEFAULT_SYNC_CONFIG),
+        "slideshow": slideshow if slideshow is not None else existing.get("slideshow", DEFAULT_SLIDESHOW_CONFIG),
+        "app": app if app is not None else existing.get("app", DEFAULT_APP_CONFIG),
     }
 
     if not _set_secret(KEY_LOCAL_DB_PASSWORD, local_db_password or ""):

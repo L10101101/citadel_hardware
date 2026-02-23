@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import os
+import logging
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -12,10 +13,11 @@ from psycopg2 import Error
 from db_utils import get_connection
 from config_store import get_smtp_config
 
-UCC_LOGO_WIDTH = 100
-UCC_LOGO_HEIGHT = 100
-LOGO_WIDTH = 120
-LOGO_HEIGHT = 120
+UCC_LOGO_WIDTH = 72
+UCC_LOGO_HEIGHT = 72
+LOGO_WIDTH = 88
+LOGO_HEIGHT = 88
+logger = logging.getLogger(__name__)
 
 def format_datetime(dt_string: str) -> tuple:
     try:
@@ -136,7 +138,7 @@ This is an automated notification. Please do not reply to this email.
                     img_data = f.read()
                 mime_type, _ = guess_type(path)
                 if not mime_type or not mime_type.startswith("image/"):
-                    print(f"[WARNING] Invalid {path}")
+                    logger.warning("Invalid image MIME type for path: %s", path)
                     continue
                 subtype = mime_type.split("/")[1]
                 img = MIMEImage(img_data, _subtype=subtype)
@@ -144,7 +146,7 @@ This is an automated notification. Please do not reply to this email.
                 img.add_header("Content-Disposition", "inline", filename=os.path.basename(path))
                 msg.attach(img)
             except Exception as e:
-                print(f"[WARNING] Failed {cid}: {e}")
+                logger.warning("Failed to attach inline image %s: %s", cid, e)
 
     smtp = SMTP(hostname=smtp_config["host"], port=smtp_config["port"], start_tls=smtp_config["tls"])
     await smtp.connect()
@@ -166,19 +168,19 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
         conn.close()
 
         if not result:
-            print(f"[WARNING] Not found {student_no}")
+            logger.warning("Student not found for email notification: %s", student_no)
             return
 
         student_name, guardian_email = result
         if not guardian_email:
-            print(f"[WARNING] No email {student_name}")
+            logger.warning("No guardian email for student: %s", student_name)
             return
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         await send_campus_notification(guardian_email, student_name, timestamp, notification_type)
 
-    except Error as e:
-        print(f"[DB ERROR] {e}")
+    except Error:
+        logger.exception("Email notification database error")
 
 def notify_parent_task(student_no: str, notification_type: str = "entry"):
     def runner():

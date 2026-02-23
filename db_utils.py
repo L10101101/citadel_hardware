@@ -28,6 +28,7 @@ def can_connect(host, port, timeout=3):
         return False
 
 CONNECT_TIMEOUT_SEC = 15
+APP_DB_TIMEZONE = "Asia/Manila"
 
 def get_cloud_connection():
     if not has_internet():
@@ -40,6 +41,9 @@ def get_cloud_connection():
         kwargs.setdefault("connect_timeout", CONNECT_TIMEOUT_SEC)
         conn = psycopg2.connect(**kwargs)
         conn.autocommit = True
+        cur = conn.cursor()
+        cur.execute(f"SET TIME ZONE '{APP_DB_TIMEZONE}'")
+        cur.close()
         return conn, "cloud"
     except Exception as e:
         raise ConnectionError(f"Cloud connection failed: {e}")
@@ -53,6 +57,9 @@ def get_local_connection():
         kwargs.setdefault("connect_timeout", CONNECT_TIMEOUT_SEC)
         conn = psycopg2.connect(**kwargs)
         conn.set_session(readonly=False, autocommit=True)
+        cur = conn.cursor()
+        cur.execute(f"SET TIME ZONE '{APP_DB_TIMEZONE}'")
+        cur.close()
         return conn, "local"
     except Exception as e:
         raise ConnectionError(f"Local connection failed: {e}")

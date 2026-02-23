@@ -3,6 +3,7 @@ import re
 import subprocess
 import tempfile
 import threading
+import re
 import time
 from datetime import datetime, timedelta
 from typing import Optional, Callable
@@ -23,6 +24,7 @@ from sync_helpers import (
     sync_reference_tables,
     sync_verification_methods,
 )
+from config_store import get_sync_config
 
 try:
     from PyQt6.QtCore import QTimer
@@ -31,15 +33,34 @@ except ImportError:
     QT_AVAILABLE = False
 
 class DataSyncManager:
-    def __init__(self, sync_interval: int = 300, upload_interval: int = 60):
-        self.sync_interval = sync_interval
-        self.upload_interval = upload_interval
+    def __init__(
+        self,
+        sync_interval: int | None = None,
+        upload_interval: int | None = None,
+        sync_slideshow: bool = True,
+    ):
+        self._sync_config = get_sync_config()
+        cfg_interval = self._sync_config.get("sync_interval", 300)
+        cfg_upload = self._sync_config.get("upload_interval", 60)
+        cfg_monitoring_pull = self._sync_config.get("monitoring_pull_interval", 30)
+        cfg_monitoring_full_pull = self._sync_config.get("monitoring_full_pull_interval", 300)
+        cfg_monitoring_delta_lookback = self._sync_config.get("monitoring_delta_lookback_seconds", 86400)
+        self.sync_interval = sync_interval if sync_interval is not None else cfg_interval
+        self.upload_interval = upload_interval if upload_interval is not None else cfg_upload
+        self.monitoring_pull_interval = max(5, int(cfg_monitoring_pull))
+        self.monitoring_full_pull_interval = max(30, int(cfg_monitoring_full_pull))
+        self.monitoring_delta_lookback_seconds = max(60, int(cfg_monitoring_delta_lookback))
+        self.sync_slideshow = bool(sync_slideshow)
         self.sync_queue = SyncQueue()
         self.running = False
         self.sync_thread = None
         self.upload_thread = None
         self.last_sync_time = None
         self.last_upload_time = None
+        self.last_monitoring_pull = None
+        self.last_monitoring_sync = None
+        self.last_monitoring_full_pull = None
+        self._monitoring_updated_at_warning_emitted = False
         
         self.last_student_sync = None
         self.last_fingerprint_sync = None
@@ -53,6 +74,17 @@ class DataSyncManager:
         self.is_syncing = False
         self.sync_progress = ""
         self.startup_sync_attempted = False
+
+    @staticmethod
+    def _safe_ident(value: str, fallback: str) -> str:
+        if not value:
+            return fallback
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", value):
+            return value
+        return fallback
+
+    def _get_sync_config(self) -> dict:
+        return self._sync_config or {}
     def _safe_callback(self, callback: Optional[Callable], *args):
         if callback is None:
             return
@@ -127,16 +159,15 @@ class DataSyncManager:
             return self._sync_in_thread(force_full)
     
     def _sync_in_thread(self, force_full: bool):
-        """Internal sync method that runs in background thread.
-
-        Incremental sync has been removed; we always run a full sync.
-        """
+        """Internal sync method that runs in background thread."""
         self.is_syncing = True
         try:
             self._safe_callback(self.on_sync_start)
 
-            # Always perform a full sync now
-            result = self._full_sync()
+            if force_full:
+                result = self._full_sync()
+            else:
+                result = self._incremental_sync()
             # Mark startup sync as attempted once we have tried a full sync
             if force_full:
                 self.startup_sync_attempted = True
@@ -165,6 +196,21 @@ class DataSyncManager:
                     continue
                 
                 if has_internet() and not self.is_syncing:
+                    # Periodic cloud->local pull for kiosk state convergence.
+                    if (
+                        not self.last_monitoring_pull
+                        or (datetime.now() - self.last_monitoring_pull).total_seconds() >= self.monitoring_pull_interval
+                    ):
+                        force_full_monitoring_pull = (
+                            not self.last_monitoring_full_pull
+                            or (datetime.now() - self.last_monitoring_full_pull).total_seconds()
+                            >= self.monitoring_full_pull_interval
+                        )
+                        if self._sync_monitoring_logs_only(force_full=force_full_monitoring_pull):
+                            self.last_monitoring_pull = datetime.now()
+                            if force_full_monitoring_pull:
+                                self.last_monitoring_full_pull = self.last_monitoring_pull
+
                     # Check if it's time for periodic sync
                     if (self.last_sync_time and 
                         (datetime.now() - self.last_sync_time).total_seconds() >= self.sync_interval):
@@ -173,6 +219,231 @@ class DataSyncManager:
                 time.sleep(30)  # Check every 30 seconds
             except Exception:
                 time.sleep(60)
+
+    def _sync_monitoring_logs_only(self, force_full: bool = False) -> bool:
+        """Pull monitoring_logs updates from cloud into local cache."""
+        cloud_conn = None
+        local_conn = None
+        cloud_cur = None
+        local_cur = None
+        try:
+            cloud_conn, _ = get_cloud_connection()
+            local_conn, _ = get_local_connection()
+            cloud_cur = cloud_conn.cursor()
+            local_cur = local_conn.cursor()
+            cloud_cur.execute("SET TIME ZONE 'Asia/Manila'")
+            local_cur.execute("SET TIME ZONE 'Asia/Manila'")
+
+            table = "monitoring_logs"
+            updated_col = "updated_at"
+
+            cloud_cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = %s
+                """,
+                (table,),
+            )
+            cloud_cols = {row[0] for row in cloud_cur.fetchall()}
+            local_cur.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = %s
+                """,
+                (table,),
+            )
+            local_cols = {row[0] for row in local_cur.fetchall()}
+
+            if "student_no" not in cloud_cols or "student_no" not in local_cols:
+                return False
+            has_local_pending_upload = "pending_upload" in local_cols
+
+            columns = [
+                "id",
+                "student_no",
+                "entry_method",
+                "entry_timestamp",
+                "exit_method",
+                "exit_timestamp",
+                "created_at",
+                "updated_at",
+            ]
+            columns = [c for c in columns if c in cloud_cols and c in local_cols]
+            if not columns:
+                return False
+
+            cols_sql = ", ".join(f'"{c}"' for c in columns)
+            sync_candidates = [c for c in ("updated_at", "entry_timestamp", "exit_timestamp", "created_at") if c in columns]
+            sync_token_expr = None
+            if sync_candidates:
+                sync_token_expr = "GREATEST(" + ", ".join(
+                    [f'COALESCE("{c}", to_timestamp(0))' for c in sync_candidates]
+                ) + ")"
+
+            if sync_token_expr and self.last_monitoring_sync and not force_full:
+                floor_ts = self.last_monitoring_sync - timedelta(seconds=self.monitoring_delta_lookback_seconds)
+                cloud_cur.execute(
+                    f"""
+                    SELECT {cols_sql}, {sync_token_expr} AS "__sync_token"
+                    FROM "{table}"
+                    WHERE {sync_token_expr} > %s
+                    ORDER BY "__sync_token" ASC
+                    """,
+                    (floor_ts,),
+                )
+            elif sync_token_expr:
+                cloud_cur.execute(
+                    f"""
+                    SELECT {cols_sql}, {sync_token_expr} AS "__sync_token"
+                    FROM "{table}"
+                    ORDER BY "__sync_token" ASC
+                    """
+                )
+            else:
+                cloud_cur.execute(
+                    f"""
+                    SELECT {cols_sql}
+                    FROM "{table}"
+                    ORDER BY student_no ASC
+                    """
+                )
+
+            rows = cloud_cur.fetchall()
+            if not rows:
+                return True
+
+            has_sync_token = bool(sync_token_expr)
+            data_rows = [r[:-1] for r in rows] if has_sync_token else rows
+
+            has_id = "id" in columns
+            student_no_idx = columns.index("student_no")
+            id_idx = columns.index("id") if has_id else -1
+            if has_id:
+                # Align local IDs to cloud IDs when safe (no conflict with another local row).
+                for row in data_rows:
+                    row_id = row[id_idx]
+                    student_no = row[student_no_idx]
+                    if row_id is None or student_no is None:
+                        continue
+                    local_cur.execute(
+                        """
+                        UPDATE monitoring_logs t
+                        SET id = %s
+                        WHERE t.student_no = %s
+                          AND t.id IS DISTINCT FROM %s
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM monitoring_logs m2
+                              WHERE m2.id = %s
+                                AND m2.student_no <> %s
+                          )
+                        """,
+                        (row_id, student_no, row_id, row_id, student_no),
+                    )
+
+            insert_cols = ", ".join(f'"{c}"' for c in columns)
+            placeholders = ", ".join("%s" for _ in columns)
+            update_cols = [c for c in columns if c not in ("student_no", "id")]
+            if update_cols:
+                set_clause = ", ".join(f'"{c}" = EXCLUDED."{c}"' for c in update_cols)
+                where_parts = []
+                if "updated_at" in columns:
+                    where_parts.append(
+                        f'"{table}"."updated_at" IS NULL OR EXCLUDED."updated_at" >= "{table}"."updated_at"'
+                    )
+                if has_local_pending_upload:
+                    where_parts.append(f'COALESCE("{table}"."pending_upload", FALSE) = FALSE')
+                where_clause = f"\n                    WHERE {' AND '.join(where_parts)}" if where_parts else ""
+                upsert_sql = f"""
+                    INSERT INTO "{table}" ({insert_cols})
+                    VALUES ({placeholders})
+                    ON CONFLICT (student_no) DO UPDATE SET
+                        {set_clause}{where_clause}
+                """
+            else:
+                upsert_sql = f"""
+                    INSERT INTO "{table}" ({insert_cols})
+                    VALUES ({placeholders})
+                    ON CONFLICT (student_no) DO NOTHING
+                """
+
+            for row in data_rows:
+                local_cur.execute(upsert_sql, row)
+            local_conn.commit()
+
+            if has_sync_token:
+                latest = max((r[-1] for r in rows if r[-1] is not None), default=None)
+                if latest is not None:
+                    self.last_monitoring_sync = latest
+            elif updated_col in columns:
+                updated_idx = columns.index(updated_col)
+                latest = max((r[updated_idx] for r in data_rows if r[updated_idx] is not None), default=None)
+                if latest is not None:
+                    self.last_monitoring_sync = latest
+            return True
+        except Exception:
+            if local_conn:
+                try:
+                    local_conn.rollback()
+                except Exception:
+                    pass
+            return False
+        finally:
+            if cloud_cur:
+                try:
+                    cloud_cur.close()
+                except Exception:
+                    pass
+            if local_cur:
+                try:
+                    local_cur.close()
+                except Exception:
+                    pass
+            if cloud_conn:
+                try:
+                    cloud_conn.close()
+                except Exception:
+                    pass
+            if local_conn:
+                try:
+                    local_conn.close()
+                except Exception:
+                    pass
+
+    def _warn_if_monitoring_updated_at_not_timestamptz(self, cloud_conn, local_conn) -> None:
+        """Emit a startup warning when monitoring_logs.updated_at is not timestamptz."""
+        if self._monitoring_updated_at_warning_emitted:
+            return
+
+        def _column_type(conn, table: str, column: str):
+            cur = conn.cursor()
+            try:
+                cur.execute(
+                    """
+                    SELECT data_type, udt_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
+                    """,
+                    (table, column),
+                )
+                return cur.fetchone()
+            finally:
+                cur.close()
+
+        try:
+            cloud_type = _column_type(cloud_conn, "monitoring_logs", "updated_at")
+            local_type = _column_type(local_conn, "monitoring_logs", "updated_at")
+            cloud_ok = bool(cloud_type and cloud_type[1] == "timestamptz")
+            local_ok = bool(local_type and local_type[1] == "timestamptz")
+            if not (cloud_ok and local_ok):
+                self._update_progress(
+                    "Warning: monitoring_logs.updated_at should be TIMESTAMPTZ on cloud and local for reliable time-based pulls."
+                )
+                self._monitoring_updated_at_warning_emitted = True
+        except Exception:
+            pass
     
     def _upload_worker(self):
         """Background worker for uploading logs to cloud"""
@@ -190,33 +461,90 @@ class DataSyncManager:
         local_cur = local_conn.cursor()
         try:
             try:
-                cloud_cur.execute("""
-                    SELECT id, method
-                    FROM verification_methods
-                    ORDER BY id
-                """)
+                cfg = self._get_sync_config().get("verification_methods", {})
+                table = self._safe_ident(cfg.get("table"), "verification_methods")
+                id_col = self._safe_ident(cfg.get("id_column"), "id")
+                method_col = self._safe_ident(cfg.get("method_column"), "method")
+                cloud_cur.execute(
+                    f"""
+                    SELECT "{id_col}", "{method_col}"
+                    FROM "{table}"
+                    ORDER BY "{id_col}"
+                    """
+                )
                 rows = cloud_cur.fetchall()
 
                 for vid, vmethod in rows:
-                    local_cur.execute("""
-                        INSERT INTO verification_methods (id, method)
+                    local_cur.execute(
+                        f"""
+                        INSERT INTO "{table}" ("{id_col}", "{method_col}")
                         VALUES (%s, %s)
-                        ON CONFLICT (id) DO UPDATE SET
-                            method = EXCLUDED.method
-                    """, (vid, vmethod))
+                        ON CONFLICT ("{id_col}") DO UPDATE SET
+                            "{method_col}" = EXCLUDED."{method_col}"
+                        """,
+                        (vid, vmethod),
+                    )
 
                 # Targeted delete: remove local rows not in cloud (archived/removed)
                 if rows:
                     cloud_ids = [r[0] for r in rows]
                     local_cur.execute(
-                        "DELETE FROM verification_methods WHERE (id IS NULL OR NOT (id = ANY(%s)))",
+                        f'DELETE FROM "{table}" WHERE ("{id_col}" IS NULL OR NOT ("{id_col}" = ANY(%s)))',
                         (cloud_ids,),
                     )
                 else:
-                    local_cur.execute("DELETE FROM verification_methods")
+                    local_cur.execute(f'DELETE FROM "{table}"')
                 local_conn.commit()
             except Exception:
                 local_conn.rollback()
+        finally:
+            cloud_cur.close()
+            local_cur.close()
+
+    def _sync_slideshow(self, cloud_conn, local_conn):
+        """Sync slideshow images from cloud to local (full sync only)."""
+        cloud_cur = cloud_conn.cursor()
+        local_cur = local_conn.cursor()
+        try:
+            try:
+                local_cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS slideshow (
+                        id INTEGER PRIMARY KEY,
+                        image BYTEA NOT NULL
+                    )
+                    """
+                )
+            except Exception:
+                pass
+
+            cloud_cur.execute('SELECT id, image FROM slideshow ORDER BY id')
+            rows = cloud_cur.fetchall()
+
+            if not rows:
+                local_cur.execute('DELETE FROM slideshow')
+                local_conn.commit()
+                return
+
+            for slide_id, image in rows:
+                local_cur.execute(
+                    """
+                    INSERT INTO slideshow (id, image)
+                    VALUES (%s, %s)
+                    ON CONFLICT (id) DO UPDATE SET
+                        image = EXCLUDED.image
+                    """,
+                    (slide_id, Binary(image)),
+                )
+
+            cloud_ids = [r[0] for r in rows]
+            local_cur.execute(
+                'DELETE FROM slideshow WHERE (id IS NULL OR NOT (id = ANY(%s)))',
+                (cloud_ids,),
+            )
+            local_conn.commit()
+        except Exception:
+            local_conn.rollback()
         finally:
             cloud_cur.close()
             local_cur.close()
@@ -285,7 +613,14 @@ class DataSyncManager:
         """
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
-        ref_tables = ("programs", "year_sections")
+        cfg = self._get_sync_config()
+        ref_tables = cfg.get("reference_tables") or ("programs", "year_sections")
+        if isinstance(ref_tables, str):
+            ref_tables = [t.strip() for t in ref_tables.split(",") if t.strip()]
+        safe_tables = []
+        for t in ref_tables:
+            safe_tables.append(self._safe_ident(t, ""))
+        ref_tables = [t for t in safe_tables if t]
         try:
             try:
                 for table in ref_tables:
@@ -416,7 +751,19 @@ class DataSyncManager:
                 "--no-privileges",
                 "-f", schema_path,
             ]
-            r = subprocess.run(cmd_dump, env=env, capture_output=True, text=True, timeout=120)
+            run_kwargs = {
+                "capture_output": True,
+                "text": True,
+                "timeout": 120,
+            }
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = 0
+                run_kwargs["startupinfo"] = startupinfo
+                run_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
+            r = subprocess.run(cmd_dump, env=env, **run_kwargs)
             if r.returncode != 0:
                 return False
 
@@ -439,7 +786,7 @@ class DataSyncManager:
                 "-d", env_local["PGDATABASE"],
                 "-f", schema_path,
             ]
-            r = subprocess.run(cmd_psql, env=env_local, capture_output=True, text=True, timeout=120)
+            r = subprocess.run(cmd_psql, env=env_local, **run_kwargs)
             if r.returncode != 0:
                 pass  # "already exists" etc.; continue with data sync
             return True
@@ -461,6 +808,7 @@ class DataSyncManager:
             self._update_progress("Connecting to cloud...")
             cloud_conn, _ = get_cloud_connection()
             local_conn, _ = get_local_connection()
+            self._warn_if_monitoring_updated_at_not_timestamptz(cloud_conn, local_conn)
             
             if self._local_needs_schema():
                 self._update_progress("Syncing schema from cloud...")
@@ -485,6 +833,11 @@ class DataSyncManager:
             # Sync facial recognition data
             self._update_progress("Syncing facial data...")
             self._sync_facial_data(cloud_conn, local_conn, full=True)
+
+            # Sync slideshow images (optional per app context).
+            if self.sync_slideshow:
+                self._update_progress("Syncing slideshow...")
+                self._sync_slideshow(cloud_conn, local_conn)
             
             cloud_conn.close()
             local_conn.close()
@@ -493,6 +846,33 @@ class DataSyncManager:
             self._update_progress("Sync complete")
             return True
             
+        except Exception as e:
+            self._update_progress(f"Sync failed: {e}")
+            return False
+
+    def _incremental_sync(self) -> bool:
+        """Perform incremental sync for students and fingerprints after idle periods."""
+        try:
+            self._update_progress("Connecting to cloud...")
+            cloud_conn, _ = get_cloud_connection()
+            local_conn, _ = get_local_connection()
+
+            if self._local_needs_schema():
+                self._update_progress("Syncing schema from cloud...")
+                self._sync_schema_from_cloud()
+
+            self._update_progress("Syncing students (incremental)...")
+            self._sync_students(cloud_conn, local_conn, full=False)
+
+            self._update_progress("Syncing fingerprints (incremental)...")
+            self._sync_fingerprints(cloud_conn, local_conn, full=False)
+
+            cloud_conn.close()
+            local_conn.close()
+
+            self.last_sync_time = datetime.now()
+            self._update_progress("Sync complete")
+            return True
         except Exception as e:
             self._update_progress(f"Sync failed: {e}")
             return False
@@ -506,6 +886,11 @@ class DataSyncManager:
         """Sync student data from cloud to local"""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
+        cfg = self._get_sync_config().get("students", {})
+        students_table = self._safe_ident(cfg.get("table"), "students")
+        updated_col = self._safe_ident(cfg.get("updated_at_column"), "updated_at")
+        facial_data_col = self._safe_ident(cfg.get("facial_data_column"), "facial_recognition_data")
+        facial_flag_col = self._safe_ident(cfg.get("facial_flag_column"), "has_facial_recognition")
         
         try:
             # Ensure local schema is permissive enough to accept cloud rows.
@@ -515,24 +900,30 @@ class DataSyncManager:
                 # Relax NOT NULL on all non-key student columns so that the local
                 # cache is not stricter than the cloud schema. We keep NOT NULL
                 # only on the primary key (student_no).
-                local_cur.execute("""
+                local_cur.execute(
+                    """
                     SELECT column_name
                     FROM information_schema.columns
                     WHERE table_schema = 'public'
-                      AND table_name = 'students'
+                      AND table_name = %s
                       AND is_nullable = 'NO'
-                """)
+                    """,
+                    (students_table,),
+                )
                 non_null_cols = [row[0] for row in local_cur.fetchall()] or []
 
                 # Detect primary key columns (usually just student_no)
-                local_cur.execute("""
+                local_cur.execute(
+                    """
                     SELECT a.attname
                     FROM pg_index i
                     JOIN pg_attribute a
                       ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-                    WHERE i.indrelid = 'students'::regclass
+                    WHERE i.indrelid = %s::regclass
                       AND i.indisprimary
-                """)
+                    """,
+                    (students_table,),
+                )
                 pk_cols = {row[0] for row in local_cur.fetchall()} or set()
 
                 for col in non_null_cols:
@@ -540,7 +931,7 @@ class DataSyncManager:
                         continue  # keep NOT NULL on primary key columns
                     try:
                         local_cur.execute(
-                            f'ALTER TABLE students ALTER COLUMN "{col}" DROP NOT NULL'
+                            f'ALTER TABLE "{students_table}" ALTER COLUMN "{col}" DROP NOT NULL'
                         )
                     except Exception:
                         # Ignore per-column failures; we'll still attempt sync
@@ -549,16 +940,19 @@ class DataSyncManager:
                 # Drop non-primary-key UNIQUE constraints so local isn't stricter
                 # than the cloud schema (e.g. students_email_unique).
                 try:
-                    local_cur.execute("""
+                    local_cur.execute(
+                        """
                         SELECT conname
                         FROM pg_constraint
-                        WHERE conrelid = 'students'::regclass
+                        WHERE conrelid = %s::regclass
                           AND contype = 'u'
-                    """)
+                        """,
+                        (students_table,),
+                    )
                     for (conname,) in local_cur.fetchall():
                         try:
                             local_cur.execute(
-                                f'ALTER TABLE "students" DROP CONSTRAINT "{conname}"'
+                                f'ALTER TABLE "{students_table}" DROP CONSTRAINT "{conname}"'
                             )
                         except Exception:
                             # Ignore per-constraint failures.
@@ -572,20 +966,26 @@ class DataSyncManager:
                 pass
 
             # Check if cloud and local both have id column so we copy cloud id to local
-            cloud_cur.execute("""
+            cloud_cur.execute(
+                """
                 SELECT column_name FROM information_schema.columns
-                WHERE table_schema = 'public' AND table_name = 'students'
-            """, ())
+                WHERE table_schema = 'public' AND table_name = %s
+                """,
+                (students_table,),
+            )
             cloud_student_cols = {row[0] for row in cloud_cur.fetchall()}
-            local_cur.execute("""
+            local_cur.execute(
+                """
                 SELECT column_name FROM information_schema.columns
-                WHERE table_schema = 'public' AND table_name = 'students'
-            """, ())
+                WHERE table_schema = 'public' AND table_name = %s
+                """,
+                (students_table,),
+            )
             local_student_cols = {row[0] for row in local_cur.fetchall()}
             include_id = "id" in cloud_student_cols and "id" in local_student_cols
 
             if include_id:
-                base_select = """
+                base_select = f"""
                     SELECT
                         s.id,
                         s.student_no,
@@ -605,14 +1005,14 @@ class DataSyncManager:
                         s.username,
                         s.password,
                         s.created_at,
-                        s.updated_at,
-                        s.has_facial_recognition,
-                        s.facial_recognition_data
-                    FROM students s
+                        s."{updated_col}",
+                        s."{facial_flag_col}",
+                        s."{facial_data_col}"
+                    FROM "{students_table}" s
                 """
                 updated_at_index = 18
             else:
-                base_select = """
+                base_select = f"""
                     SELECT
                         s.student_no,
                         s.fullname,
@@ -631,31 +1031,29 @@ class DataSyncManager:
                         s.username,
                         s.password,
                         s.created_at,
-                        s.updated_at,
-                        s.has_facial_recognition,
-                        s.facial_recognition_data
-                    FROM students s
+                        s."{updated_col}",
+                        s."{facial_flag_col}",
+                        s."{facial_data_col}"
+                    FROM "{students_table}" s
                 """
                 updated_at_index = 17
 
             if full:
                 # Full sync: get all students
-                cloud_cur.execute(base_select + " ORDER BY s.updated_at DESC")
+                cloud_cur.execute(base_select + f' ORDER BY s."{updated_col}" DESC')
             else:
                 # Incremental sync: only get updated students
                 if self.last_student_sync:
                     cloud_cur.execute(
-                        base_select + " WHERE s.updated_at > %s ORDER BY s.updated_at DESC",
+                        base_select + f' WHERE s."{updated_col}" > %s ORDER BY s."{updated_col}" DESC',
                         (self.last_student_sync,),
                     )
                 else:
                     # No previous sync timestamp, sync all (but still incremental mode)
-                    cloud_cur.execute(base_select + " ORDER BY s.updated_at DESC")
+                    cloud_cur.execute(base_select + f' ORDER BY s."{updated_col}" DESC')
             
             students = cloud_cur.fetchall()
             if not students:
-                local_cur.execute("DELETE FROM students")
-                local_conn.commit()
                 return
 
             # Batch insert/update to local
@@ -699,8 +1097,8 @@ class DataSyncManager:
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, students)
-                local_cur.execute("""
-                    INSERT INTO students (
+                local_cur.execute(f"""
+                    INSERT INTO "{students_table}" (
                         id, student_no, fullname, program_id, year_section_id, status,
                         dob, gender, email, contact, address,
                         guardian_name, guardian_contact, guardian_email, guardian_address,
@@ -714,27 +1112,7 @@ class DataSyncManager:
                         username, password, created_at, updated_at,
                         has_facial_recognition, facial_recognition_data
                     FROM temp_students
-                    ON CONFLICT (id) DO UPDATE SET
-                        student_no = EXCLUDED.student_no,
-                        fullname = EXCLUDED.fullname,
-                        program_id = EXCLUDED.program_id,
-                        year_section_id = EXCLUDED.year_section_id,
-                        status = EXCLUDED.status,
-                        dob = EXCLUDED.dob,
-                        gender = EXCLUDED.gender,
-                        email = EXCLUDED.email,
-                        contact = EXCLUDED.contact,
-                        address = EXCLUDED.address,
-                        guardian_name = EXCLUDED.guardian_name,
-                        guardian_contact = EXCLUDED.guardian_contact,
-                        guardian_email = EXCLUDED.guardian_email,
-                        guardian_address = EXCLUDED.guardian_address,
-                        username = EXCLUDED.username,
-                        password = EXCLUDED.password,
-                        created_at = EXCLUDED.created_at,
-                        updated_at = EXCLUDED.updated_at,
-                        has_facial_recognition = EXCLUDED.has_facial_recognition,
-                        facial_recognition_data = EXCLUDED.facial_recognition_data
+                    ON CONFLICT (id) DO NOTHING
                 """)
             else:
                 local_cur.execute("""
@@ -771,8 +1149,8 @@ class DataSyncManager:
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, students)
-                local_cur.execute("""
-                    INSERT INTO students (
+                local_cur.execute(f"""
+                    INSERT INTO "{students_table}" (
                         student_no, fullname, program_id, year_section_id, status,
                         dob, gender, email, contact, address,
                         guardian_name, guardian_contact, guardian_email, guardian_address,
@@ -786,37 +1164,8 @@ class DataSyncManager:
                         username, password, created_at, updated_at,
                         has_facial_recognition, facial_recognition_data
                     FROM temp_students
-                    ON CONFLICT (student_no) DO UPDATE SET
-                        fullname = EXCLUDED.fullname,
-                        program_id = EXCLUDED.program_id,
-                        year_section_id = EXCLUDED.year_section_id,
-                        status = EXCLUDED.status,
-                        dob = EXCLUDED.dob,
-                        gender = EXCLUDED.gender,
-                        email = EXCLUDED.email,
-                        contact = EXCLUDED.contact,
-                        address = EXCLUDED.address,
-                        guardian_name = EXCLUDED.guardian_name,
-                        guardian_contact = EXCLUDED.guardian_contact,
-                        guardian_email = EXCLUDED.guardian_email,
-                        guardian_address = EXCLUDED.guardian_address,
-                        username = EXCLUDED.username,
-                        password = EXCLUDED.password,
-                        created_at = EXCLUDED.created_at,
-                        updated_at = EXCLUDED.updated_at,
-                        has_facial_recognition = EXCLUDED.has_facial_recognition,
-                        facial_recognition_data = EXCLUDED.facial_recognition_data
+                    ON CONFLICT (student_no) DO NOTHING
                 """)
-            # Targeted delete: remove local students not in cloud (archived/removed)
-            cloud_cur.execute("SELECT student_no FROM students")
-            cloud_nos = [row[0] for row in cloud_cur.fetchall()]
-            if cloud_nos:
-                local_cur.execute(
-                    "DELETE FROM students WHERE (student_no IS NULL OR NOT (student_no = ANY(%s)))",
-                    (cloud_nos,),
-                )
-            else:
-                local_cur.execute("DELETE FROM students")
             local_conn.commit()
             
             # Update last sync time (updated_at index depends on whether we selected id)
@@ -832,6 +1181,10 @@ class DataSyncManager:
         """Sync fingerprint templates from cloud to local"""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
+        cfg = self._get_sync_config().get("fingerprints", {})
+        fp_table = self._safe_ident(cfg.get("table"), "fingerprints")
+        fp_updated_col = self._safe_ident(cfg.get("updated_at_column"), "updated_at")
+        fp_template_col = self._safe_ident(cfg.get("template_column"), "template")
         
         try:
             # Detect whether cloud schema has an updated_at column on fingerprints.
@@ -839,94 +1192,99 @@ class DataSyncManager:
             # a timestamp and ensure the local table has an updated_at column.
             has_updated_at = getattr(self, "_fingerprints_has_updated_at", None)
             if has_updated_at is None:
-                cloud_cur.execute("""
+                cloud_cur.execute(
+                    """
                     SELECT COUNT(*)
                     FROM information_schema.columns
-                    WHERE table_name = 'fingerprints' AND column_name = 'updated_at'
-                """)
+                    WHERE table_name = %s AND column_name = %s
+                    """,
+                    (fp_table, fp_updated_col),
+                )
                 has_updated_at = cloud_cur.fetchone()[0] > 0
                 self._fingerprints_has_updated_at = has_updated_at
 
             if has_updated_at:
                 if full:
-                    cloud_cur.execute("""
-                        SELECT student_no, template, updated_at
-                        FROM fingerprints
-                        ORDER BY updated_at DESC
-                    """)
+                    cloud_cur.execute(
+                        f"""
+                        SELECT student_no, "{fp_template_col}", "{fp_updated_col}"
+                        FROM "{fp_table}"
+                        ORDER BY "{fp_updated_col}" DESC
+                        """
+                    )
                 else:
                     if self.last_fingerprint_sync:
-                        cloud_cur.execute("""
-                            SELECT student_no, template, updated_at
-                            FROM fingerprints
-                            WHERE updated_at > %s
-                            ORDER BY updated_at DESC
-                        """, (self.last_fingerprint_sync,))
+                        cloud_cur.execute(
+                            f"""
+                            SELECT student_no, "{fp_template_col}", "{fp_updated_col}"
+                            FROM "{fp_table}"
+                            WHERE "{fp_updated_col}" > %s
+                            ORDER BY "{fp_updated_col}" DESC
+                            """,
+                            (self.last_fingerprint_sync,),
+                        )
                     else:
                         # No previous sync timestamp, sync all (but still incremental mode)
-                        cloud_cur.execute("""
-                            SELECT student_no, template, updated_at
-                            FROM fingerprints
-                            ORDER BY updated_at DESC
-                        """)
+                        cloud_cur.execute(
+                            f"""
+                            SELECT student_no, "{fp_template_col}", "{fp_updated_col}"
+                            FROM "{fp_table}"
+                            ORDER BY "{fp_updated_col}" DESC
+                            """
+                        )
             else:
                 # Cloud fingerprints table has no updated_at column.
                 # We synthesize a timestamp so local side can still
                 # use updated_at for ordering and conflict resolution.
                 if full or not self.last_fingerprint_sync:
-                    cloud_cur.execute("""
+                    cloud_cur.execute(
+                        f"""
                         SELECT student_no,
-                               template,
-                               NOW() AS updated_at
-                        FROM fingerprints
+                               "{fp_template_col}",
+                               NOW() AS "{fp_updated_col}"
+                        FROM "{fp_table}"
                         ORDER BY student_no
-                    """)
+                        """
+                    )
                 else:
                     # Without updated_at in cloud, incremental filtering
                     # is not possible; fall back to full set.
-                    cloud_cur.execute("""
+                    cloud_cur.execute(
+                        f"""
                         SELECT student_no,
-                               template,
-                               NOW() AS updated_at
-                        FROM fingerprints
+                               "{fp_template_col}",
+                               NOW() AS "{fp_updated_col}"
+                        FROM "{fp_table}"
                         ORDER BY student_no
-                    """)
+                        """
+                    )
             
             fingerprints = cloud_cur.fetchall()
             if not fingerprints:
-                local_cur.execute("DELETE FROM fingerprints")
-                local_conn.commit()
                 return
 
             # Ensure local fingerprints table has the expected updated_at column
             try:
-                local_cur.execute("""
-                    ALTER TABLE IF EXISTS fingerprints
-                    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP
-                """)
+                local_cur.execute(
+                    f"""
+                    ALTER TABLE IF EXISTS "{fp_table}"
+                    ADD COLUMN IF NOT EXISTS "{fp_updated_col}" TIMESTAMP
+                    """
+                )
             except Exception:
                 # Non-fatal; if this fails, the subsequent INSERT will report the issue
                 pass
             
             # Batch upsert fingerprints
             for student_no, template, updated_at in fingerprints:
-                local_cur.execute("""
-                    INSERT INTO fingerprints (student_no, template, updated_at)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (student_no) DO UPDATE SET
-                        template = EXCLUDED.template,
-                        updated_at = EXCLUDED.updated_at
-                """, (student_no, Binary(template), updated_at))
-            # Targeted delete: remove local fingerprints not in cloud (archived/removed)
-            cloud_cur.execute("SELECT student_no FROM fingerprints")
-            cloud_nos = [row[0] for row in cloud_cur.fetchall()]
-            if cloud_nos:
                 local_cur.execute(
-                    "DELETE FROM fingerprints WHERE (student_no IS NULL OR NOT (student_no = ANY(%s)))",
-                    (cloud_nos,),
+                    f"""
+                    INSERT INTO "{fp_table}" (student_no, "{fp_template_col}", "{fp_updated_col}")
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (student_no) DO NOTHING
+                    """,
+                    (student_no, Binary(template), updated_at),
                 )
-            else:
-                local_cur.execute("DELETE FROM fingerprints")
             local_conn.commit()
             
             self.last_fingerprint_sync = max(f[2] for f in fingerprints) if fingerprints else self.last_fingerprint_sync
@@ -941,38 +1299,50 @@ class DataSyncManager:
         """Sync facial recognition data from cloud to local"""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
+        cfg = self._get_sync_config().get("students", {})
+        students_table = self._safe_ident(cfg.get("table"), "students")
+        updated_col = self._safe_ident(cfg.get("updated_at_column"), "updated_at")
+        facial_data_col = self._safe_ident(cfg.get("facial_data_column"), "facial_recognition_data")
+        facial_flag_col = self._safe_ident(cfg.get("facial_flag_column"), "has_facial_recognition")
         
         try:
             if full:
-                cloud_cur.execute("""
-                    SELECT student_no, facial_recognition_data, has_facial_recognition, updated_at
-                    FROM students
-                    WHERE has_facial_recognition = TRUE
-                    ORDER BY updated_at DESC
-                """)
+                cloud_cur.execute(
+                    f"""
+                    SELECT student_no, "{facial_data_col}", "{facial_flag_col}", "{updated_col}"
+                    FROM "{students_table}"
+                    WHERE "{facial_flag_col}" = TRUE
+                    ORDER BY "{updated_col}" DESC
+                    """
+                )
             else:
                 if self.last_facial_sync:
-                    cloud_cur.execute("""
-                        SELECT student_no, facial_recognition_data, has_facial_recognition, updated_at
-                        FROM students
-                        WHERE has_facial_recognition = TRUE AND updated_at > %s
-                        ORDER BY updated_at DESC
-                    """, (self.last_facial_sync,))
+                    cloud_cur.execute(
+                        f"""
+                        SELECT student_no, "{facial_data_col}", "{facial_flag_col}", "{updated_col}"
+                        FROM "{students_table}"
+                        WHERE "{facial_flag_col}" = TRUE AND "{updated_col}" > %s
+                        ORDER BY "{updated_col}" DESC
+                        """,
+                        (self.last_facial_sync,),
+                    )
                 else:
                     # No previous sync timestamp, sync all (but still incremental mode)
-                    cloud_cur.execute("""
-                        SELECT student_no, facial_recognition_data, has_facial_recognition, updated_at
-                        FROM students
-                        WHERE has_facial_recognition = TRUE
-                        ORDER BY updated_at DESC
-                    """)
+                    cloud_cur.execute(
+                        f"""
+                        SELECT student_no, "{facial_data_col}", "{facial_flag_col}", "{updated_col}"
+                        FROM "{students_table}"
+                        WHERE "{facial_flag_col}" = TRUE
+                        ORDER BY "{updated_col}" DESC
+                        """
+                    )
             
             facial_data = cloud_cur.fetchall()
             if not facial_data:
                 local_cur.execute(
-                    """UPDATE students
-                       SET has_facial_recognition = FALSE, facial_recognition_data = NULL
-                       WHERE has_facial_recognition = TRUE"""
+                    f"""UPDATE "{students_table}"
+                       SET "{facial_flag_col}" = FALSE, "{facial_data_col}" = NULL
+                       WHERE "{facial_flag_col}" = TRUE"""
                 )
                 local_conn.commit()
                 return
@@ -980,40 +1350,43 @@ class DataSyncManager:
             # Full sync: clear all local facial data first, then set only those in cloud
             if full:
                 local_cur.execute(
-                    """UPDATE students
-                       SET has_facial_recognition = FALSE, facial_recognition_data = NULL
-                       WHERE has_facial_recognition = TRUE"""
+                    f"""UPDATE "{students_table}"
+                       SET "{facial_flag_col}" = FALSE, "{facial_data_col}" = NULL
+                       WHERE "{facial_flag_col}" = TRUE"""
                 )
 
             # Batch update facial data
             for student_no, facial_data_blob, has_facial, updated_at in facial_data:
-                local_cur.execute("""
-                    UPDATE students
-                    SET facial_recognition_data = %s,
-                        has_facial_recognition = %s,
-                        updated_at = %s
+                local_cur.execute(
+                    f"""
+                    UPDATE "{students_table}"
+                    SET "{facial_data_col}" = %s,
+                        "{facial_flag_col}" = %s,
+                        "{updated_col}" = %s
                     WHERE student_no = %s
-                """, (Binary(facial_data_blob) if facial_data_blob else None, 
-                      has_facial, updated_at, student_no))
+                    """,
+                    (Binary(facial_data_blob) if facial_data_blob else None,
+                     has_facial, updated_at, student_no),
+                )
             # Clear facial data on local students that no longer have it in cloud (incremental only)
             if not full:
                 cloud_cur.execute(
-                    "SELECT student_no FROM students WHERE has_facial_recognition = TRUE"
+                    f'SELECT student_no FROM "{students_table}" WHERE "{facial_flag_col}" = TRUE'
                 )
                 cloud_facial_nos = [row[0] for row in cloud_cur.fetchall()]
                 if cloud_facial_nos:
                     local_cur.execute(
-                        """UPDATE students
-                           SET has_facial_recognition = FALSE, facial_recognition_data = NULL
-                           WHERE has_facial_recognition = TRUE
+                        f"""UPDATE "{students_table}"
+                           SET "{facial_flag_col}" = FALSE, "{facial_data_col}" = NULL
+                           WHERE "{facial_flag_col}" = TRUE
                              AND (student_no IS NULL OR NOT (student_no = ANY(%s)))""",
                         (cloud_facial_nos,),
                     )
                 else:
                     local_cur.execute(
-                        """UPDATE students
-                           SET has_facial_recognition = FALSE, facial_recognition_data = NULL
-                           WHERE has_facial_recognition = TRUE"""
+                        f"""UPDATE "{students_table}"
+                           SET "{facial_flag_col}" = FALSE, "{facial_data_col}" = NULL
+                           WHERE "{facial_flag_col}" = TRUE"""
                     )
             local_conn.commit()
             
@@ -1200,8 +1573,6 @@ class DataSyncManager:
                     ON CONFLICT (student_no) DO UPDATE SET
                         entry_method    = EXCLUDED.entry_method,
                         entry_timestamp = EXCLUDED.entry_timestamp,
-                        exit_method     = NULL,
-                        exit_timestamp  = NULL,
                         updated_at      = EXCLUDED.updated_at
                 """, (student_no, method_id, timestamp, timestamp, timestamp))
             elif log_type == 'exit':

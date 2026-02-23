@@ -1,6 +1,7 @@
 import cv2
 import psycopg2
 import numpy as np
+import logging
 
 from openvino.runtime import Core
 from cryptography.fernet import Fernet
@@ -8,18 +9,37 @@ from db_utils import get_connection
 from config_store import get_fernet_key
 from utils import resource_path
 
+logger = logging.getLogger(__name__)
+
 CONF_THRESHOLD = 0.8
 STILL_DURATION = 2.0
 CAMERA_INDEX = 0
 CAMERA_WIDTH = 3840
 CAMERA_HEIGHT = 2160
 FPS = 30
+MIN_FACE_SIZE = 120
+MIN_BRIGHTNESS = 45.0
+MAX_BRIGHTNESS = 220.0
+MIN_SHARPNESS = 70.0
 
 DET_MODEL = resource_path("models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml")
 REC_MODEL = resource_path("models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml")
 ie = Core()
-det_model = ie.compile_model(ie.read_model(DET_MODEL), "GPU")
-rec_model = ie.compile_model(ie.read_model(REC_MODEL), "GPU")
+
+def _compile_with_fallback(model_path, preferred=("GPU", "CPU")):
+    model = ie.read_model(model_path)
+
+    for device in preferred:
+        try:
+            return ie.compile_model(model, device)
+        except Exception:
+            continue
+    raise RuntimeError(
+        "Failed to compile model: {}. Tried devices: {}".format(model_path, ", ".join(preferred))
+    )
+
+det_model = _compile_with_fallback(DET_MODEL)
+rec_model = _compile_with_fallback(REC_MODEL)
 det_output = det_model.output(0)
 rec_output = rec_model.output(0)
 
@@ -30,6 +50,15 @@ def open_camera():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, FPS)
+    # Best-effort camera tuning for mixed lighting environments.
+    try:
+        cap.set(cv2.CAP_PROP_AUTO_WB, 1)
+    except Exception:
+        pass
+    try:
+        cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
+    except Exception:
+        pass
     return cap
 
 def get_center_crop(frame):
@@ -64,6 +93,23 @@ def _normalize_lighting(face_crop):
     lab = cv2.merge([l, a, b])
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
+def face_quality_metrics(face_crop):
+    if face_crop is None or face_crop.size == 0:
+        return {"ok": False, "reason": "invalid"}
+    h, w = face_crop.shape[:2]
+    if min(h, w) < MIN_FACE_SIZE:
+        return {"ok": False, "reason": "small_face"}
+    gray = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
+    brightness = float(np.mean(gray))
+    sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+    if brightness < MIN_BRIGHTNESS:
+        return {"ok": False, "reason": "too_dark", "brightness": brightness, "sharpness": sharpness}
+    if brightness > MAX_BRIGHTNESS:
+        return {"ok": False, "reason": "too_bright", "brightness": brightness, "sharpness": sharpness}
+    if sharpness < MIN_SHARPNESS:
+        return {"ok": False, "reason": "blurry", "brightness": brightness, "sharpness": sharpness}
+    return {"ok": True, "reason": "ok", "brightness": brightness, "sharpness": sharpness}
+
 def extract_embedding(face_crop):
     face_crop = _normalize_lighting(face_crop)
     resized = cv2.resize(face_crop, (128, 128))
@@ -95,9 +141,9 @@ def save_to_cloud(student_no, emb):
     conn.close()
 
     if success:
-        print(f"Saved to cloud")
+        logger.info("Saved face embedding to cloud for student %s", student_no)
     else:
-        print(f"Student {student_no} Not Found")
+        logger.warning("Student not found in cloud while saving face embedding: %s", student_no)
         raise ValueError(f"{student_no} Not Found")
 
 def save_to_db(student_no, emb):
@@ -124,7 +170,9 @@ def save_to_db(student_no, emb):
     conn.close()
 
     if success:
-        print(f"Saved")
+        logger.info("Saved face embedding locally for student %s", student_no)
     else:
-        print(f"Student {student_no} Not Found")
+        logger.warning("Student not found in local DB while saving face embedding: %s", student_no)
         raise ValueError(f"{student_no} Not Found")
+
+

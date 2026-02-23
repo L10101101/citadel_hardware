@@ -2,9 +2,12 @@ import os
 import re
 import subprocess
 import tempfile
+import logging
 
 from typing import Sequence
 from db_utils import LOCAL_DB, CLOUD_DB, get_local_connection
+
+logger = logging.getLogger(__name__)
 
 def local_needs_schema() -> bool:
     try:
@@ -58,7 +61,7 @@ def sync_schema_from_cloud() -> bool:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False) as f:
             schema_path = f.name
     except Exception as e:
-        print(f"[SYNC] Schema sync failed (temp file): {e}")
+        logger.exception("Schema sync failed while creating temporary schema file: %s", e)
         return False
 
     try:
@@ -90,7 +93,10 @@ def sync_schema_from_cloud() -> bool:
         ]
         r = subprocess.run(cmd_dump, env=env, capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
-            print(f"[SYNC] Schema dump failed: {r.stderr[:500] if r.stderr else r.stdout[:500]}")
+            logger.error(
+                "Schema dump failed: %s",
+                r.stderr[:500] if r.stderr else r.stdout[:500],
+            )
             return False
 
         _strip_fk_constraints_from_schema_sql(schema_path)
@@ -115,18 +121,18 @@ def sync_schema_from_cloud() -> bool:
         )
         if r.returncode != 0:
             err = (r.stderr or "") + (r.stdout or "")
-            print(f"[SYNC] Schema apply warning: {err[:400]}")
+            logger.warning("Schema apply warning: %s", err[:400])
         else:
-            print("[SYNC] Schema synced from cloud to local (no FK constraints)")
+            logger.info("Schema synced from cloud to local (without FK constraints)")
         return True
     except subprocess.TimeoutExpired:
-        print("[SYNC] Schema sync timed out")
+        logger.warning("Schema sync timed out")
         return False
     except FileNotFoundError:
-        print("[SYNC] pg_dump or psql not found; add PostgreSQL bin to PATH for schema sync")
+        logger.warning("pg_dump or psql not found; add PostgreSQL bin to PATH for schema sync")
         return False
-    except Exception as e:
-        print(f"[SYNC] Schema sync failed: {e}")
+    except Exception:
+        logger.exception("Schema sync failed")
         return False
     finally:
         try:
@@ -170,9 +176,9 @@ def sync_full_table(cloud_cur, local_cur, table_name: str, pk_column: str = "id"
             local_cur.execute(f'DELETE FROM "{table_name}"')
             deleted = local_cur.rowcount
             if deleted:
-                print(f"[SYNC] Purged {deleted} rows from {table_name}")
+                logger.info("Purged %d rows from %s", deleted, table_name)
         except Exception as e:
-            print(f"[SYNC] Warning: failed to purge {table_name}: {e}")
+            logger.warning("Failed to purge %s: %s", table_name, e)
         return
     if update_cols:
         set_clause = ", ".join(f'"{c}" = EXCLUDED."{c}"' for c in update_cols)
@@ -189,7 +195,7 @@ def sync_full_table(cloud_cur, local_cur, table_name: str, pk_column: str = "id"
         """
     for row in rows:
         local_cur.execute(sql, row)
-    print(f"[SYNC] Synced {len(rows)} rows for {table_name}")
+    logger.info("Synced %d rows for %s", len(rows), table_name)
 
 def sync_reference_tables(cloud_conn, local_conn) -> None:
     cloud_cur = cloud_conn.cursor()
@@ -227,18 +233,18 @@ def sync_reference_tables(cloud_conn, local_conn) -> None:
                     except Exception:
                         continue
         except Exception as e:
-            print(f"[SYNC] Warning: failed to relax NOT NULL on reference tables: {e}")
+            logger.warning("Failed to relax NOT NULL constraints on reference tables: %s", e)
 
         for table in ref_tables:
             try:
                 sync_full_table(cloud_cur, local_cur, table, "id")
             except Exception as e:
-                print(f"[SYNC] Warning: failed to sync {table}: {e}")
+                logger.warning("Failed to sync %s: %s", table, e)
 
         local_conn.commit()
     except Exception as e:
         local_conn.rollback()
-        print(f"[SYNC] Warning: reference table sync failed: {e}")
+        logger.warning("Reference table sync failed: %s", e)
     finally:
         cloud_cur.close()
         local_cur.close()
@@ -271,7 +277,7 @@ def sync_verification_methods(cloud_conn, local_conn) -> None:
             local_conn.commit()
         except Exception as e:
             local_conn.rollback()
-            print(f"[SYNC] Warning: failed to sync verification_methods: {e}")
+            logger.warning("Failed to sync verification_methods: %s", e)
     finally:
         cloud_cur.close()
         local_cur.close()

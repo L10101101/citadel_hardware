@@ -2,8 +2,26 @@ import cv2
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from camera_thread import CameraThread
 from face_thread import FaceThread
+
+
+class CameraPreviewWindow(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent, Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
+        self.setObjectName("cameraPreviewWindow")
+        self.setStyleSheet("background-color: #000;")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.feed_label = QLabel(self)
+        self.feed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.feed_label.setObjectName("cameraPreviewLabel")
+        layout.addWidget(self.feed_label)
+
+    def set_preview_size(self, size):
+        self.setFixedSize(size, size)
 
 class CameraHandler:
     def __init__(self, main_window):
@@ -11,12 +29,65 @@ class CameraHandler:
         self.camera_thread = None
         self._display_bgr = None
         self._display_info = None
+        self.camera_window = None
+        self.camera_overlay_label = None
+        self._init_inline_preview()
+
+    def _init_inline_preview(self):
+        if self.camera_overlay_label is not None:
+            return
+        if not hasattr(self.main, "displayWidget"):
+            return
+        self.camera_overlay_label = QLabel(self.main.displayWidget)
+        self.camera_overlay_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.camera_overlay_label.setObjectName("cameraInlinePreview")
+        self.camera_overlay_label.setStyleSheet("background-color: #000; border-radius: 20px;")
+        self.camera_overlay_label.setVisible(False)
+        if hasattr(self.main, "displayLayout"):
+            self.main.displayLayout.addWidget(self.camera_overlay_label, 0, 0, 1, 1)
+
+    def open_camera_window(self):
+        self._init_inline_preview()
+        if self.camera_overlay_label is None:
+            return
+        self.camera_overlay_label.setVisible(True)
+        self.camera_overlay_label.raise_()
+
+    def close_camera_window(self):
+        if self.camera_overlay_label is None:
+            return
+        self.camera_overlay_label.setVisible(False)
+
+    def _suggested_window_size(self):
+        screen = self.main.screen()
+        if screen is None:
+            return 640
+        geom = screen.availableGeometry()
+        return max(320, int(min(geom.width(), geom.height()) * 0.6))
+
+    def _center_window(self, window):
+        screen = self.main.screen()
+        if screen is None:
+            return
+        geom = screen.availableGeometry()
+        x = geom.x() + (geom.width() - window.width()) // 2
+        y = geom.y() + (geom.height() - window.height()) // 2
+        window.move(x, y)
+
+    def _target_label(self):
+        if self.camera_overlay_label and self.camera_overlay_label.isVisible():
+            return self.camera_overlay_label
+        return getattr(self.main, "cameraFeed", None)
 
     def start_camera(self):
         if self.camera_thread and self.camera_thread.isRunning():
             return
         self.camera_thread = CameraThread(camera_index=0)
         self.camera_thread.frameCaptured.connect(self.update_camera_frame)
+        if hasattr(self.main, "on_camera_device_availability_changed"):
+            self.camera_thread.deviceAvailabilityChanged.connect(
+                self.main.on_camera_device_availability_changed
+            )
         self.camera_thread.start()
 
     def stop_camera(self):
@@ -29,6 +100,9 @@ class CameraHandler:
     def update_camera_frame(self, frame):
         if self.main._suppress_feed:
             return
+        label = self._target_label()
+        if label is None:
+            return
         self.main.original_frame = frame
         h, w, _ = frame.shape
         crop_size = min(h, w)
@@ -36,7 +110,7 @@ class CameraHandler:
         y_start = (h - crop_size) // 2
         square_frame = frame[y_start:y_start + crop_size, x_start:x_start + crop_size]
 
-        target_size = min(max(1, self.main.cameraFeed.width()), max(1, self.main.cameraFeed.height()))
+        target_size = min(max(1, label.width()), max(1, label.height()))
         display_bgr = cv2.resize(square_frame, (target_size, target_size))
         display_bgr = cv2.flip(display_bgr, 1)
 
@@ -57,16 +131,19 @@ class CameraHandler:
             self.main.face_thread.start()
 
     def update_pixmap(self, bgr_frame):
+        label = self._target_label()
+        if label is None:
+            return
         rgb_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
         h_img, w_img = rgb_frame.shape[:2]
         qt_image = QImage(rgb_frame.data, w_img, h_img, 3 * w_img, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qt_image).scaled(
-            self.main.cameraFeed.width(),
-            self.main.cameraFeed.height(),
+            label.width(),
+            label.height(),
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
-        self.main.cameraFeed.setPixmap(pixmap)
+        label.setPixmap(pixmap)
 
     def draw_face_box(self, box, ok):
         x1, y1, x2, y2 = box
@@ -90,5 +167,8 @@ class CameraHandler:
     def clear_camera_feed(self):
         from utils import resource_path
         pixmap = QPixmap(resource_path("gui/assets/user.png"))
-        self.main.cameraFeed.setPixmap(pixmap)
-        self.main._set_camera_feed_background("#FFBF66")  # Ready color
+        label = self._target_label()
+        if label is not None:
+            label.setPixmap(pixmap)
+        if hasattr(self.main, "status_labels"):
+            self.main.status_labels.set_camera_background("#FFBF66")  # Ready color

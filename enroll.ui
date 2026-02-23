@@ -6,12 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1434</width>
-    <height>879</height>
+    <width>1282</width>
+    <height>720</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>0</height>
+   </size>
+  </property>
   <property name="windowTitle">
-   <string>Citadel - Enrollment</string>
+   <string>Enroll</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -32,7 +38,8 @@ QWidget#centralWidget {
 
 QWidget#titleWidget {
     background-color: #064f32;
-    max-height: 100px;
+	border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
 }
 
 QWidget#bodyWidget {
@@ -44,45 +51,39 @@ QWidget#detailsWidget {
     border-radius: 20px;
 }
 
-QWidget#footerWidget {
-    background-color: #064f32;
-    max-height: 80px;
+QWidget#cameraWidget {
+    background-color: #fff;
+	border-radius: 20px
 }
 
-QLabel#logoLabel {
-    max-width: 80px;
-    max-height: 80px;
-    margin: 0px 20px;
+QWidget#footerWidget {
+    background-color: #064f32;
+	border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
 }
 
 QLabel#schoolNameLabel {
     color: #fff;
     font-weight: bold;
-    font-size: 30px;
-    max-width: 500px;
     qproperty-alignment: AlignBottom;
 }
 
 QLabel#schoolSubLabel {
     color: #fff;
-    font-size: 20px;
 }
 
 QLabel#dateTimeLabel {
     color: #fff;
-    font-size: 20px;
-    margin-right: 20px;
+    font-weight: 900;
 }
 
 QLabel#footerLabel {
     color: #fff;
-    font-weight: bold;
     width: 100%;
 }
 
 QLabel#cameraFeed {
     background-color: #fff;
-    border-radius: 20px;
 }
 
 QPushButton#btnFace,
@@ -149,38 +150,450 @@ QPushButton#btnSubmit:pressed {
 }
 
 QLineEdit#txtStudentNo {
-    border: 2px solid #ccc;
-    border-radius: 8px;
+    border: 2px solid #777;
+    border-radius: 10px;
     padding: 4px 8px;
     background-color: #f9f9f9;
 }
 
 QLabel#lblStatus {
     border-radius: 10px;
-    padding: 20px 30px;
     background-color: #eee;
     color: #333;
     font-weight: bold;
 }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="QWidget" name="titleWidget" native="true">
-      <property name="minimumSize">
-       <size>
-        <width>1280</width>
-        <height>100</height>
-       </size>
+   <layout class="QGridLayout" name="centralWidget">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <item row="0" column="0">
+     <layout class="QGridLayout" name="enrollLayout">
+      <property name="spacing">
+       <number>0</number>
       </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>100</height>
-       </size>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
+      <item row="2" column="0">
+       <widget class="QWidget" name="footerWidget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>1280</width>
+          <height>120</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>120</height>
+         </size>
+        </property>
+        <layout class="QHBoxLayout" name="footerLayout">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="footerLabel">
+           <property name="font">
+            <font>
+             <family>Poppins-Regular</family>
+             <pointsize>14</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Facial data and fingerprint data are encrypted in cloud. We do not store facial and fingerprint image.</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QWidget" name="bodyWidget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+        <layout class="QHBoxLayout" name="bodyLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <property name="leftMargin">
+          <number>11</number>
+         </property>
+         <property name="topMargin">
+          <number>11</number>
+         </property>
+         <property name="rightMargin">
+          <number>11</number>
+         </property>
+         <property name="bottomMargin">
+          <number>11</number>
+         </property>
+         <item>
+          <widget class="QWidget" name="cameraWidget" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>6</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <layout class="QHBoxLayout" name="cameraLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>11</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>11</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="cameraFeed">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16662777</width>
+                <height>16662777</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::Shape::NoFrame</enum>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="scaledContents">
+               <bool>false</bool>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QWidget" name="detailsWidget" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>3</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <layout class="QVBoxLayout" name="detailsLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>33</number>
+            </property>
+            <property name="topMargin">
+             <number>33</number>
+            </property>
+            <property name="rightMargin">
+             <number>33</number>
+            </property>
+            <property name="bottomMargin">
+             <number>44</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="addStudentLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <family>Poppins-Regular</family>
+                <pointsize>20</pointsize>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>UPLOAD STUDENT DATA</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="buttonWidget" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <layout class="QHBoxLayout" name="buttonLayout">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="btnFace">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>80</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Poppins-Regular</family>
+                   <pointsize>14</pointsize>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="text">
+                  <string>Face Data</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnFinger">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>80</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Poppins-Regular</family>
+                   <pointsize>14</pointsize>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="text">
+                  <string>Fingerprint</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="txtStudentNo">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <family>Poppins-Regular</family>
+                <pointsize>14</pointsize>
+               </font>
+              </property>
+              <property name="maxLength">
+               <number>10</number>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+              <property name="placeholderText">
+               <string>Enter student no.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnSubmit">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <family>Poppins-Regular</family>
+                <pointsize>14</pointsize>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="text">
+               <string>Start</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="statusWidget" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>60</height>
+               </size>
+              </property>
+              <layout class="QHBoxLayout" name="statusLayout">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="lblStatus">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <family>Poppins-Regular</family>
+                   <pointsize>14</pointsize>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QWidget" name="titleWidget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>1280</width>
+          <height>120</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>120</height>
+         </size>
+        </property>
         <layout class="QHBoxLayout" name="titleLayout">
          <item>
           <widget class="QLabel" name="logoLabel">
@@ -192,14 +605,14 @@ QLabel#lblStatus {
            </property>
            <property name="minimumSize">
             <size>
-             <width>120</width>
-             <height>50</height>
+             <width>100</width>
+             <height>100</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>120</width>
-             <height>80</height>
+             <width>100</width>
+             <height>100</height>
             </size>
            </property>
            <property name="text">
@@ -226,14 +639,14 @@ QLabel#lblStatus {
            </property>
            <property name="minimumSize">
             <size>
-             <width>80</width>
-             <height>80</height>
+             <width>100</width>
+             <height>100</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>80</width>
-             <height>80</height>
+             <width>100</width>
+             <height>100</height>
             </size>
            </property>
            <property name="text">
@@ -251,46 +664,66 @@ QLabel#lblStatus {
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="logoSpacer">
-           <property name="minimumSize">
-            <size>
-             <width>20</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>20</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
+          <widget class="QWidget" name="schoolWidget" native="true">
+           <layout class="QVBoxLayout" name="schoolLayout">
+            <property name="spacing">
+             <number>7</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="schoolNameLabel">
+              <property name="font">
+               <font>
+                <family>Poppins-Regular</family>
+                <pointsize>25</pointsize>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>University of Caloocan City</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="schoolSubLabel">
+              <property name="font">
+               <font>
+                <family>Poppins-Regular</family>
+                <pointsize>20</pointsize>
+                <italic>true</italic>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Citadel Enrollment System</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
          <item>
-          <layout class="QVBoxLayout" name="schoolLayout">
-           <item>
-            <widget class="QLabel" name="schoolNameLabel">
-             <property name="text">
-              <string>University of Caloocan City</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="schoolSubLabel">
-             <property name="text">
-              <string>Citadel Enrollment System</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
           <widget class="QLabel" name="dateTimeLabel">
+           <property name="font">
+            <font>
+             <family>Poppins-Regular</family>
+             <pointsize>29</pointsize>
+             <fontweight>Black</fontweight>
+            </font>
+           </property>
            <property name="text">
-            <string>October 15, 2025 | 05:00AM</string>
+            <string>JAN 01, 2026 - 12:00PM</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -307,14 +740,14 @@ QLabel#lblStatus {
            </property>
            <property name="minimumSize">
             <size>
-             <width>80</width>
-             <height>80</height>
+             <width>50</width>
+             <height>50</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
-             <width>80</width>
-             <height>80</height>
+             <width>50</width>
+             <height>50</height>
             </size>
            </property>
            <property name="text">
@@ -323,450 +756,9 @@ QLabel#lblStatus {
           </widget>
          </item>
         </layout>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QWidget" name="bodyWidget" native="true">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="0">
-          <layout class="QHBoxLayout" name="cameraLayout">
-           <property name="leftMargin">
-            <number>0</number>
-           </property>
-           <property name="topMargin">
-            <number>22</number>
-           </property>
-           <property name="rightMargin">
-            <number>0</number>
-           </property>
-           <property name="bottomMargin">
-            <number>22</number>
-           </property>
-           <item>
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="cameraFeed">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16662777</width>
-               <height>16662777</height>
-              </size>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::Shape::NoFrame</enum>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="scaledContents">
-              <bool>false</bool>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="verticalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </item>
-         <item row="0" column="1">
-          <widget class="QWidget" name="detailsContainer" native="true">
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
-            <property name="topMargin">
-             <number>22</number>
-            </property>
-            <property name="bottomMargin">
-             <number>22</number>
-            </property>
-            <item>
-             <spacer name="verticalSpacer_3">
-              <property name="orientation">
-               <enum>Qt::Orientation::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <layout class="QVBoxLayout" name="detailsLayout">
-              <property name="spacing">
-               <number>7</number>
-              </property>
-              <item>
-               <widget class="QWidget" name="detailsWidget" native="true">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16662777</width>
-                  <height>16662777</height>
-                 </size>
-                </property>
-                <layout class="QGridLayout" name="gridLayout_2">
-                 <property name="leftMargin">
-                  <number>100</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>75</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>100</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>75</number>
-                 </property>
-                 <property name="verticalSpacing">
-                  <number>20</number>
-                 </property>
-                 <item row="0" column="0">
-                  <layout class="QVBoxLayout" name="studentNoVerticalLayout">
-                   <item>
-                    <widget class="QWidget" name="studentNoWidget" native="true">
-                     <layout class="QVBoxLayout" name="verticalLayout_10">
-                      <property name="spacing">
-                       <number>30</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QLabel" name="addStudentLabel">
-                        <property name="font">
-                         <font>
-                          <family>Poppins-Regular</family>
-                          <pointsize>20</pointsize>
-                          <bold>true</bold>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>UPLOAD STUDENT DATA</string>
-                        </property>
-                        <property name="alignment">
-                         <set>Qt::AlignmentFlag::AlignCenter</set>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <layout class="QHBoxLayout" name="horizontalLayout_9">
-                        <property name="spacing">
-                         <number>0</number>
-                        </property>
-                        <item>
-                         <widget class="QPushButton" name="btnFace">
-                          <property name="minimumSize">
-                           <size>
-                            <width>0</width>
-                            <height>75</height>
-                           </size>
-                          </property>
-                          <property name="font">
-                           <font>
-                            <family>Poppins-Regular</family>
-                            <pointsize>12</pointsize>
-                            <bold>true</bold>
-                           </font>
-                          </property>
-                          <property name="cursor">
-                           <cursorShape>PointingHandCursor</cursorShape>
-                          </property>
-                          <property name="text">
-                           <string>Face Data</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item>
-                         <widget class="QPushButton" name="btnFinger">
-                          <property name="minimumSize">
-                           <size>
-                            <width>0</width>
-                            <height>75</height>
-                           </size>
-                          </property>
-                          <property name="font">
-                           <font>
-                            <family>Poppins-Regular</family>
-                            <pointsize>12</pointsize>
-                            <bold>true</bold>
-                           </font>
-                          </property>
-                          <property name="cursor">
-                           <cursorShape>PointingHandCursor</cursorShape>
-                          </property>
-                          <property name="text">
-                           <string>Fingerprint</string>
-                          </property>
-                         </widget>
-                        </item>
-                       </layout>
-                      </item>
-                      <item>
-                       <widget class="QLineEdit" name="txtStudentNo">
-                        <property name="minimumSize">
-                         <size>
-                          <width>0</width>
-                          <height>50</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <family>Poppins-Regular</family>
-                          <pointsize>12</pointsize>
-                         </font>
-                        </property>
-                        <property name="maxLength">
-                         <number>10</number>
-                        </property>
-                        <property name="alignment">
-                         <set>Qt::AlignmentFlag::AlignCenter</set>
-                        </property>
-                        <property name="placeholderText">
-                         <string>Enter student no.</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QPushButton" name="btnSubmit">
-                        <property name="minimumSize">
-                         <size>
-                          <width>0</width>
-                          <height>50</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <family>Poppins-Regular</family>
-                          <pointsize>12</pointsize>
-                          <bold>true</bold>
-                         </font>
-                        </property>
-                        <property name="cursor">
-                         <cursorShape>PointingHandCursor</cursorShape>
-                        </property>
-                        <property name="text">
-                         <string>Start</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                 <item row="1" column="0">
-                  <layout class="QHBoxLayout" name="statusLayout">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="sizeConstraint">
-                    <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <widget class="QWidget" name="statusWidget" native="true">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="minimumSize">
-                      <size>
-                       <width>0</width>
-                       <height>0</height>
-                      </size>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>16777215</width>
-                       <height>50</height>
-                      </size>
-                     </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_5">
-                      <property name="spacing">
-                       <number>0</number>
-                      </property>
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="rightMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QLabel" name="lblStatus">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="minimumSize">
-                         <size>
-                          <width>0</width>
-                          <height>40</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <family>Poppins-Regular</family>
-                          <pointsize>14</pointsize>
-                          <bold>true</bold>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string/>
-                        </property>
-                        <property name="alignment">
-                         <set>Qt::AlignmentFlag::AlignCenter</set>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_4">
-              <property name="orientation">
-               <enum>Qt::Orientation::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QWidget" name="footerWidget" native="true">
-      <property name="minimumSize">
-       <size>
-        <width>1280</width>
-        <height>70</height>
-       </size>
-      </property>
-      <layout class="QHBoxLayout" name="footerHBox">
-       <item>
-        <widget class="QLabel" name="footerLabel">
-         <property name="font">
-          <font>
-           <family>Poppins-Regular</family>
-           <pointsize>10</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Facial data and fingerprint data are encrypted in cloud. We do not store facial and fingerprint image.</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignmentFlag::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

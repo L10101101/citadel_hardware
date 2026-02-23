@@ -20,6 +20,7 @@ class SyncDialog(QDialog):
         "Syncing students...",
         "Syncing fingerprints...",
         "Syncing facial data...",
+        "Syncing slideshow...",
         "Sync complete",
     ]
 
@@ -81,13 +82,31 @@ class SyncDialog(QDialog):
         self.button_layout.addStretch()
         self.retry_btn = QPushButton("Retry", self)
         self.retry_btn.setVisible(False)
+        self.retry_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #2E7D32;
+                color: white;
+                font-weight: bold;
+            }
+            """
+        )
         self.exit_btn = QPushButton("Exit", self)
         self.exit_btn.setVisible(False)
+        self.exit_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #E0E0E0;
+                color: #C62828;
+                font-weight: bold;
+            }
+            """
+        )
         self.button_layout.addWidget(self.retry_btn)
         self.button_layout.addWidget(self.exit_btn)
         layout.addLayout(self.button_layout)
 
-        self.sync_manager = sync_manager or DataSyncManager(sync_interval=300, upload_interval=60)
+        self.sync_manager = sync_manager or DataSyncManager()
         self._allow_offline = allow_offline
         self._sync_failed = False
         self._sync_started = False
@@ -168,7 +187,10 @@ class SyncDialog(QDialog):
         self.exit_btn.setVisible(False)
         self._sync_failed = False
         self.progress_bar.setRange(0, 0)
-        self.progress_bar.setStyleSheet("")
+        self.progress_bar.setStyleSheet(
+            "QProgressBar { border: 1px solid #d0d4da; border-radius: 8px; background-color: #E0E0E0; }"
+            "QProgressBar::chunk { border-radius: 8px; background-color: #4CAF50; }"
+        )
         self._sync_started = True
         self._last_progress = ""
         self._update_ui("Retrying...", 0)

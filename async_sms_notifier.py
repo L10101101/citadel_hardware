@@ -1,11 +1,14 @@
 import os
 import asyncio
 import threading
+import logging
 
 from twilio.rest import Client
 from db_utils import get_connection
 from config_store import get_twilio_config
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 def _get_twilio_client():
     cfg = get_twilio_config()
@@ -35,9 +38,10 @@ async def send_sms(guardian_number: str, student_name: str, action: str):
         client.messages.create(**msg_params)
 
     except Exception as e:
-        print(f"[SMS ERROR] Failed {e}")
+        logger.error("SMS send failed: %s", e)
 
 async def notify_parent_sms(student_no: str, action: str = "entered"):
+    conn = None
     try:
         conn, source = get_connection("local")
         cur = conn.cursor()
@@ -48,15 +52,14 @@ async def notify_parent_sms(student_no: str, action: str = "entered"):
         """, (student_no,))
         result = cur.fetchone()
         cur.close()
-        conn.close()
 
         if not result:
-            print(f"[WARNING] Not Found {student_no}")
+            logger.warning("Student not found for SMS notification: %s", student_no)
             return
 
         student_name, guardian_phone = result
         if not guardian_phone:
-            print(f"[WARNING] No Contact {student_name}")
+            logger.warning("No guardian contact for student: %s", student_name)
             return
 
         if not guardian_phone.startswith("+"):
@@ -64,10 +67,14 @@ async def notify_parent_sms(student_no: str, action: str = "entered"):
 
         await send_sms(guardian_phone, student_name, action)
 
-    except Exception as e:
-        print(f"[DB/SMS ERROR] {e}")
+    except Exception:
+        logger.exception("SMS notification failed")
+    finally:
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 def notify_parent_sms_task(student_no: str, action: str = "entered"):
     def runner():

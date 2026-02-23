@@ -3,7 +3,14 @@ import numpy as np
 
 from time import time
 from PyQt6.QtCore import QThread, pyqtSignal
-from face_enrollment import extract_embedding, save_to_cloud, open_camera, get_face, STILL_DURATION
+from face_enrollment import (
+    extract_embedding,
+    save_to_cloud,
+    open_camera,
+    get_face,
+    STILL_DURATION,
+    face_quality_metrics,
+)
 
 class FaceEnrollWorker(QThread):
     finished = pyqtSignal(bool, str)
@@ -19,10 +26,12 @@ class FaceEnrollWorker(QThread):
     def run(self):
         face_crop = None
         error_msg = None
+        embeddings = []
         try:
             self.cap = open_camera()
             last_box, face_box = None, None
             still_start = None
+            sample_start = None
             frame_count = 0
             DETECT_INTERVAL = 3
             last_detect_time = 0
@@ -61,21 +70,39 @@ class FaceEnrollWorker(QThread):
                             if still_start is None:
                                 still_start = now
                             elif now - still_start >= STILL_DURATION:
-                                face_crop = frame[y1:y2, x1:x2]
-                                break
+                                if sample_start is None:
+                                    sample_start = now
+                                crop = frame[y1:y2, x1:x2]
+                                metrics = face_quality_metrics(crop)
+                                if metrics.get("ok"):
+                                    try:
+                                        emb = extract_embedding(crop)
+                                        if emb is not None and emb.size > 0:
+                                            embeddings.append(emb)
+                                    except Exception:
+                                        pass
+                                # Collect a few good samples then average to one embedding.
+                                if len(embeddings) >= 5 or (sample_start and now - sample_start >= 2.0):
+                                    if embeddings:
+                                        face_crop = crop
+                                        break
                         else:
                             still_start = None
+                            sample_start = None
                     last_box = face_box
 
-                    text = f"Capturing in {max(0, STILL_DURATION - (now - still_start)):.1f}s" \
-                        if still_start else "Hold Still"
+                    if still_start and now - still_start >= STILL_DURATION:
+                        text = f"Sampling... {len(embeddings)}/5"
+                    else:
+                        text = f"Capturing in {max(0, STILL_DURATION - (now - still_start)):.1f}s" \
+                            if still_start else "Hold Still"
                     cv2.putText(frame, text, (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 else:
                     cv2.putText(frame, "No Face Detected", (20, 40),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
-                    still_start, last_box = None, None
+                    still_start, last_box, sample_start = None, None, None
 
                 self.frameReady.emit(frame)
                 self.msleep(5)
@@ -96,9 +123,10 @@ class FaceEnrollWorker(QThread):
                 self.finished.emit(False, error_msg)
                 return
 
-            if face_crop is not None:
+            if embeddings:
                 try:
-                    emb = extract_embedding(face_crop)
+                    emb = np.mean(np.stack(embeddings, axis=0), axis=0).astype(np.float32)
+                    emb = emb / (np.linalg.norm(emb) + 1e-9)
                     save_to_cloud(self.student_no, emb)
                     self.finished.emit(True, "Success")
                 except Exception as e:
