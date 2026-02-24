@@ -48,7 +48,6 @@ class TestDataSyncRetry(unittest.TestCase):
 
         mgr._upload_pending_logs()
 
-        # retry_count 0..5 => 6 total attempts in the same drain cycle.
         self.assertEqual(attempts["count"], 6)
         self.assertEqual(len(saved), 1)
         self.assertEqual(saved[0]["student_no"], "S2")

@@ -19,12 +19,14 @@ from db_utils import (
     LOCAL_DB,
     CLOUD_DB,
 )
+
 from sync_helpers import (
     local_needs_schema,
     sync_schema_from_cloud,
     sync_reference_tables,
     sync_verification_methods,
 )
+
 from config_store import get_sync_config
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,7 @@ try:
     QT_AVAILABLE = True
 except ImportError:
     QT_AVAILABLE = False
+
 
 class DataSyncManager:
     def __init__(
@@ -102,7 +105,6 @@ class DataSyncManager:
             
             QTimer.singleShot(0, execute_callback)
         else:
-            # Fallback if Qt not available (shouldn't happen in this app)
             try:
                 if callback:
                     callback(*args)
@@ -110,7 +112,6 @@ class DataSyncManager:
                 pass
     
     def start(self):
-        """Start background sync threads"""
         if self.running:
             return
         
@@ -121,7 +122,6 @@ class DataSyncManager:
         self.upload_thread.start()
     
     def stop(self):
-        """Stop background sync threads"""
         self.running = False
         if self.sync_thread:
             self.sync_thread.join(timeout=5)
@@ -129,27 +129,16 @@ class DataSyncManager:
             self.upload_thread.join(timeout=5)
     
     def sync_now(self, force_full: bool = False, background: bool = True):
-        """
-        Trigger immediate sync
-        
-        Args:
-            force_full: Force full sync instead of incremental
-            background: Run in background thread (default True to prevent blocking)
-        """
-        # Check if already syncing
         if self.is_syncing:
             return False
         
-        # Check internet connection
         if not has_internet():
             self._safe_callback(self.on_sync_error, "No internet connection")
-            # Mark startup sync as attempted even if failed (so worker can proceed)
             if force_full:
                 self.startup_sync_attempted = True
             return False
         
         if background:
-            # Run in background thread to prevent blocking
             sync_thread = threading.Thread(
                 target=self._sync_in_thread,
                 args=(force_full,),
@@ -158,11 +147,9 @@ class DataSyncManager:
             sync_thread.start()
             return True
         else:
-            # Direct call (should only be used from background worker)
             return self._sync_in_thread(force_full)
     
     def _sync_in_thread(self, force_full: bool):
-        """Internal sync method that runs in background thread."""
         self.is_syncing = True
         try:
             self._safe_callback(self.on_sync_start)
@@ -171,7 +158,6 @@ class DataSyncManager:
                 result = self._full_sync()
             else:
                 result = self._incremental_sync()
-            # Mark startup sync as attempted once we have tried a full sync
             if force_full:
                 self.startup_sync_attempted = True
 
@@ -190,16 +176,13 @@ class DataSyncManager:
             self.is_syncing = False
     
     def _sync_worker(self):
-        """Background worker for downloading data from cloud"""
         while self.running:
             try:
-                # Wait for startup sync to complete before periodic syncs
                 if not self.startup_sync_attempted:
-                    time.sleep(5)  # Check more frequently until startup sync is attempted
+                    time.sleep(5)
                     continue
                 
                 if has_internet() and not self.is_syncing:
-                    # Periodic cloud->local pull for kiosk state convergence.
                     if (
                         not self.last_monitoring_pull
                         or (datetime.now() - self.last_monitoring_pull).total_seconds() >= self.monitoring_pull_interval
@@ -214,17 +197,14 @@ class DataSyncManager:
                             if force_full_monitoring_pull:
                                 self.last_monitoring_full_pull = self.last_monitoring_pull
 
-                    # Check if it's time for periodic sync
                     if (self.last_sync_time and 
                         (datetime.now() - self.last_sync_time).total_seconds() >= self.sync_interval):
-                        # Incremental sync removed; run a full sync instead
                         self.sync_now(background=False, force_full=True)
-                time.sleep(30)  # Check every 30 seconds
+                time.sleep(30)
             except Exception:
                 time.sleep(60)
 
     def _sync_monitoring_logs_only(self, force_full: bool = False) -> bool:
-        """Pull monitoring_logs updates from cloud into local cache."""
         cloud_conn = None
         local_conn = None
         cloud_cur = None
@@ -324,7 +304,7 @@ class DataSyncManager:
             student_no_idx = columns.index("student_no")
             id_idx = columns.index("id") if has_id else -1
             if has_id:
-                # Align local IDs to cloud IDs when safe (no conflict with another local row).
+                                                                                              
                 for row in data_rows:
                     row_id = row[id_idx]
                     student_no = row[student_no_idx]
@@ -416,7 +396,6 @@ class DataSyncManager:
                     pass
 
     def _warn_if_monitoring_updated_at_not_timestamptz(self, cloud_conn, local_conn) -> None:
-        """Emit a startup warning when monitoring_logs.updated_at is not timestamptz."""
         if self._monitoring_updated_at_warning_emitted:
             return
 
@@ -449,7 +428,6 @@ class DataSyncManager:
             pass
     
     def _upload_worker(self):
-        """Background worker for uploading logs to cloud"""
         while self.running:
             try:
                 if has_internet():
@@ -459,7 +437,6 @@ class DataSyncManager:
                 time.sleep(60)
 
     def _sync_verification_methods(self, cloud_conn, local_conn):
-        """Sync verification_methods lookup table from cloud to local."""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
         try:
@@ -488,7 +465,7 @@ class DataSyncManager:
                         (vid, vmethod),
                     )
 
-                # Targeted delete: remove local rows not in cloud (archived/removed)
+                                                                                    
                 if rows:
                     cloud_ids = [r[0] for r in rows]
                     local_cur.execute(
@@ -505,7 +482,6 @@ class DataSyncManager:
             local_cur.close()
 
     def _sync_slideshow(self, cloud_conn, local_conn):
-        """Sync slideshow images from cloud to local (full sync only)."""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
         try:
@@ -553,9 +529,6 @@ class DataSyncManager:
             local_cur.close()
 
     def _sync_full_table(self, cloud_cur, local_cur, table_name: str, pk_column: str = "id"):
-        """Sync a reference table from cloud to local using all columns that exist in both.
-        Copies full rows so no column is left NULL when the cloud has a value.
-        """
         cloud_cur.execute("""
             SELECT column_name
             FROM information_schema.columns
@@ -602,7 +575,7 @@ class DataSyncManager:
         for row in rows:
             local_cur.execute(sql, row)
 
-        # Targeted delete: remove local rows not in cloud (archived/removed)
+                                                                            
         pk_index = columns.index(pk_column)
         cloud_pks = [row[pk_index] for row in rows]
         local_cur.execute(
@@ -611,9 +584,6 @@ class DataSyncManager:
         )
 
     def _sync_reference_tables(self, cloud_conn, local_conn):
-        """Sync reference tables (programs, year_sections) from cloud to local with all columns.
-        Colleges are not synced to local. Order: programs (students FK), then year_sections.
-        """
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
         cfg = self._get_sync_config()
@@ -664,7 +634,6 @@ class DataSyncManager:
             local_cur.close()
     
     def _local_needs_schema(self) -> bool:
-        """Return True if local DB is missing key tables (e.g. students)."""
         try:
             local_conn, _ = get_local_connection()
             cur = local_conn.cursor()
@@ -677,17 +646,12 @@ class DataSyncManager:
             local_conn.close()
             return not exists
         except Exception:
-            return True  # assume needs schema on error
+            return True                                
 
     def _strip_fk_constraints_from_schema_sql(self, schema_path: str) -> None:
-        """
-        Rewrite schema SQL in-place to remove foreign key constraints.
-        Local DB is used as a read cache; FKs would block load order and are not needed.
-        """
         with open(schema_path, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
-
-        # 1. Remove ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY ... REFERENCES ... ;
+                                                                      
         content = re.sub(
             r"ALTER\s+TABLE\s+[^;]*?\bADD\s+CONSTRAINT\s+[^;]*?\bFOREIGN\s+KEY\s+[^;]*?;",
             "-- (FK constraint removed for local cache)\n",
@@ -695,7 +659,6 @@ class DataSyncManager:
             flags=re.IGNORECASE | re.DOTALL,
         )
 
-        # 2. Remove inline REFERENCES in column definitions (e.g. "col integer REFERENCES t(id)")
         content = re.sub(
             r"\s+REFERENCES\s+\S+\s*\([^)]*\)(\s+ON\s+(DELETE|UPDATE)\s+\w+)*",
             "",
@@ -703,7 +666,6 @@ class DataSyncManager:
             flags=re.IGNORECASE,
         )
 
-        # 3. Remove CONSTRAINT ... FOREIGN KEY ... REFERENCES inside CREATE TABLE (table-level FK)
         content = re.sub(
             r",\s*CONSTRAINT\s+\w+\s+FOREIGN\s+KEY\s*\([^)]*\)\s+REFERENCES\s+\S+\s*\([^)]*\)(\s+ON\s+(DELETE|UPDATE)\s+\w+)*",
             "",
@@ -715,7 +677,6 @@ class DataSyncManager:
             f.write(content)
 
     def _sync_schema_from_cloud(self) -> bool:
-        """Dump schema from cloud and apply to local via pg_dump/psql (without FK constraints). Returns True on success."""
         dump_exe = "pg_dump"
         psql_exe = "psql"
         try:
@@ -726,8 +687,7 @@ class DataSyncManager:
         except Exception:
             return False
 
-        try:
-            # Build env for pg_dump (cloud)
+        try:                   
             env = os.environ.copy()
             env["PGPASSWORD"] = str(CLOUD_DB.get("password") or "")
             env["PGHOST"] = str(CLOUD_DB.get("host") or "")
@@ -770,10 +730,10 @@ class DataSyncManager:
             if r.returncode != 0:
                 return False
 
-            # Strip FK constraints so local can load schema/data in any order
+                                                                             
             self._strip_fk_constraints_from_schema_sql(schema_path)
 
-            # Apply to local via psql
+                                     
             env_local = os.environ.copy()
             env_local["PGPASSWORD"] = str(LOCAL_DB.get("password") or "")
             env_local["PGHOST"] = str(LOCAL_DB.get("host") or "127.0.0.1")
@@ -791,7 +751,7 @@ class DataSyncManager:
             ]
             r = subprocess.run(cmd_psql, env=env_local, **run_kwargs)
             if r.returncode != 0:
-                pass  # "already exists" etc.; continue with data sync
+                pass                                                  
             return True
         except subprocess.TimeoutExpired:
             return False
@@ -806,7 +766,6 @@ class DataSyncManager:
                 pass
 
     def _full_sync(self) -> bool:
-        """Perform full synchronization from cloud to local"""
         try:
             self._update_progress("Connecting to cloud...")
             cloud_conn, _ = get_cloud_connection()
@@ -816,28 +775,22 @@ class DataSyncManager:
             if self._local_needs_schema():
                 self._update_progress("Syncing schema from cloud...")
                 self._sync_schema_from_cloud()
-            
-            # Ensure reference tables (programs, year_sections, etc.) are populated
+                                                            
             self._update_progress("Syncing reference data...")
             self._sync_reference_tables(cloud_conn, local_conn)
-
-            # Sync verification methods lookup table
+                                  
             self._update_progress("Syncing verification methods...")
             self._sync_verification_methods(cloud_conn, local_conn)
-            
-            # Sync students
+    
             self._update_progress("Syncing students...")
             self._sync_students(cloud_conn, local_conn, full=True)
-            
-            # Sync fingerprints
+         
             self._update_progress("Syncing fingerprints...")
             self._sync_fingerprints(cloud_conn, local_conn, full=True)
-            
-            # Sync facial recognition data
+             
             self._update_progress("Syncing facial data...")
             self._sync_facial_data(cloud_conn, local_conn, full=True)
-
-            # Sync slideshow images (optional per app context).
+                                              
             if self.sync_slideshow:
                 self._update_progress("Syncing slideshow...")
                 self._sync_slideshow(cloud_conn, local_conn)
@@ -854,7 +807,6 @@ class DataSyncManager:
             return False
 
     def _incremental_sync(self) -> bool:
-        """Perform incremental sync for students and fingerprints after idle periods."""
         try:
             self._update_progress("Connecting to cloud...")
             cloud_conn, _ = get_cloud_connection()
@@ -881,12 +833,10 @@ class DataSyncManager:
             return False
     
     def _update_progress(self, message: str):
-        """Update sync progress message"""
         self.sync_progress = message
         self._safe_callback(self.on_sync_progress, message)
     
     def _sync_students(self, cloud_conn, local_conn, full: bool = False):
-        """Sync student data from cloud to local"""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
         cfg = self._get_sync_config().get("students", {})
@@ -895,14 +845,8 @@ class DataSyncManager:
         facial_data_col = self._safe_ident(cfg.get("facial_data_column"), "facial_recognition_data")
         facial_flag_col = self._safe_ident(cfg.get("facial_flag_column"), "has_facial_recognition")
         
-        try:
-            # Ensure local schema is permissive enough to accept cloud rows.
-            # Cloud data may have NULL in optional fields; local should not be
-            # stricter than the cloud source.
-            try:
-                # Relax NOT NULL on all non-key student columns so that the local
-                # cache is not stricter than the cloud schema. We keep NOT NULL
-                # only on the primary key (student_no).
+        try:                      
+            try:                           
                 local_cur.execute(
                     """
                     SELECT column_name
@@ -914,8 +858,7 @@ class DataSyncManager:
                     (students_table,),
                 )
                 non_null_cols = [row[0] for row in local_cur.fetchall()] or []
-
-                # Detect primary key columns (usually just student_no)
+                                                 
                 local_cur.execute(
                     """
                     SELECT a.attname
@@ -931,17 +874,14 @@ class DataSyncManager:
 
                 for col in non_null_cols:
                     if col in pk_cols:
-                        continue  # keep NOT NULL on primary key columns
+                        continue                                        
                     try:
                         local_cur.execute(
                             f'ALTER TABLE "{students_table}" ALTER COLUMN "{col}" DROP NOT NULL'
                         )
-                    except Exception:
-                        # Ignore per-column failures; we'll still attempt sync
+                    except Exception:                                        
                         continue
-
-                # Drop non-primary-key UNIQUE constraints so local isn't stricter
-                # than the cloud schema (e.g. students_email_unique).
+                            
                 try:
                     local_cur.execute(
                         """
@@ -957,18 +897,15 @@ class DataSyncManager:
                             local_cur.execute(
                                 f'ALTER TABLE "{students_table}" DROP CONSTRAINT "{conname}"'
                             )
-                        except Exception:
-                            # Ignore per-constraint failures.
+                        except Exception:                      
                             continue
-                except Exception:
-                    # Non-fatal; if this fails we still attempt the sync.
-                    pass
-            except Exception:
-                # Non-fatal: if this fails we still attempt the sync and let
-                # the concrete error surface if needed.
-                pass
 
-            # Check if cloud and local both have id column so we copy cloud id to local
+                except Exception:                                       
+                    pass
+
+            except Exception:                               
+                pass
+                                                          
             cloud_cur.execute(
                 """
                 SELECT column_name FROM information_schema.columns
@@ -1042,28 +979,26 @@ class DataSyncManager:
                 updated_at_index = 17
 
             if full:
-                # Full sync: get all students
+                                             
                 cloud_cur.execute(base_select + f' ORDER BY s."{updated_col}" DESC')
             else:
-                # Incremental sync: only get updated students
+                                                             
                 if self.last_student_sync:
                     cloud_cur.execute(
                         base_select + f' WHERE s."{updated_col}" > %s ORDER BY s."{updated_col}" DESC',
                         (self.last_student_sync,),
                     )
                 else:
-                    # No previous sync timestamp, sync all (but still incremental mode)
+                                                                                       
                     cloud_cur.execute(base_select + f' ORDER BY s."{updated_col}" DESC')
             
             students = cloud_cur.fetchall()
             if not students:
+                if full:
+                    local_cur.execute(f'DELETE FROM "{students_table}"')
+                    local_conn.commit()
                 return
-
-            # Batch insert/update to local
-            # NOTE: Local connection uses autocommit=True, so using
-            # "ON COMMIT DROP" would immediately drop the temp table
-            # after creation. We therefore omit it so the temp table
-            # lives for the lifetime of the connection.
+                     
             if include_id:
                 local_cur.execute("""
                     CREATE TEMP TABLE temp_students (
@@ -1117,6 +1052,15 @@ class DataSyncManager:
                     FROM temp_students
                     ON CONFLICT (id) DO NOTHING
                 """)
+                if full:
+                    local_cur.execute(f"""
+                        DELETE FROM "{students_table}" s
+                        WHERE NOT EXISTS (
+                            SELECT 1
+                            FROM temp_students t
+                            WHERE t.student_no = s.student_no
+                        )
+                    """)
             else:
                 local_cur.execute("""
                     CREATE TEMP TABLE temp_students (
@@ -1169,9 +1113,18 @@ class DataSyncManager:
                     FROM temp_students
                     ON CONFLICT (student_no) DO NOTHING
                 """)
+                if full:
+                    local_cur.execute(f"""
+                        DELETE FROM "{students_table}" s
+                        WHERE NOT EXISTS (
+                            SELECT 1
+                            FROM temp_students t
+                            WHERE t.student_no = s.student_no
+                        )
+                    """)
             local_conn.commit()
             
-            # Update last sync time (updated_at index depends on whether we selected id)
+                                                                                        
             self.last_student_sync = max(s[updated_at_index] for s in students) if students else self.last_student_sync
             
         except Exception:
@@ -1181,7 +1134,6 @@ class DataSyncManager:
             local_cur.close()
     
     def _sync_fingerprints(self, cloud_conn, local_conn, full: bool = False):
-        """Sync fingerprint templates from cloud to local"""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
         cfg = self._get_sync_config().get("fingerprints", {})
@@ -1189,10 +1141,7 @@ class DataSyncManager:
         fp_updated_col = self._safe_ident(cfg.get("updated_at_column"), "updated_at")
         fp_template_col = self._safe_ident(cfg.get("template_column"), "template")
         
-        try:
-            # Detect whether cloud schema has an updated_at column on fingerprints.
-            # Older cloud schemas may not have it; in that case we synthesize
-            # a timestamp and ensure the local table has an updated_at column.
+        try:                                       
             has_updated_at = getattr(self, "_fingerprints_has_updated_at", None)
             if has_updated_at is None:
                 cloud_cur.execute(
@@ -1226,8 +1175,7 @@ class DataSyncManager:
                             """,
                             (self.last_fingerprint_sync,),
                         )
-                    else:
-                        # No previous sync timestamp, sync all (but still incremental mode)
+                    else:                                                           
                         cloud_cur.execute(
                             f"""
                             SELECT student_no, "{fp_template_col}", "{fp_updated_col}"
@@ -1235,10 +1183,7 @@ class DataSyncManager:
                             ORDER BY "{fp_updated_col}" DESC
                             """
                         )
-            else:
-                # Cloud fingerprints table has no updated_at column.
-                # We synthesize a timestamp so local side can still
-                # use updated_at for ordering and conflict resolution.
+            else:                         
                 if full or not self.last_fingerprint_sync:
                     cloud_cur.execute(
                         f"""
@@ -1249,9 +1194,7 @@ class DataSyncManager:
                         ORDER BY student_no
                         """
                     )
-                else:
-                    # Without updated_at in cloud, incremental filtering
-                    # is not possible; fall back to full set.
+                else:                                     
                     cloud_cur.execute(
                         f"""
                         SELECT student_no,
@@ -1266,7 +1209,6 @@ class DataSyncManager:
             if not fingerprints:
                 return
 
-            # Ensure local fingerprints table has the expected updated_at column
             try:
                 local_cur.execute(
                     f"""
@@ -1274,11 +1216,9 @@ class DataSyncManager:
                     ADD COLUMN IF NOT EXISTS "{fp_updated_col}" TIMESTAMP
                     """
                 )
-            except Exception:
-                # Non-fatal; if this fails, the subsequent INSERT will report the issue
+            except Exception:                                                     
                 pass
-            
-            # Batch upsert fingerprints
+                          
             for student_no, template, updated_at in fingerprints:
                 local_cur.execute(
                     f"""
@@ -1299,7 +1239,6 @@ class DataSyncManager:
             local_cur.close()
     
     def _sync_facial_data(self, cloud_conn, local_conn, full: bool = False):
-        """Sync facial recognition data from cloud to local"""
         cloud_cur = cloud_conn.cursor()
         local_cur = local_conn.cursor()
         cfg = self._get_sync_config().get("students", {})
@@ -1330,7 +1269,7 @@ class DataSyncManager:
                         (self.last_facial_sync,),
                     )
                 else:
-                    # No previous sync timestamp, sync all (but still incremental mode)
+                                                                                       
                     cloud_cur.execute(
                         f"""
                         SELECT student_no, "{facial_data_col}", "{facial_flag_col}", "{updated_col}"
@@ -1349,16 +1288,14 @@ class DataSyncManager:
                 )
                 local_conn.commit()
                 return
-
-            # Full sync: clear all local facial data first, then set only those in cloud
+                                                                  
             if full:
                 local_cur.execute(
                     f"""UPDATE "{students_table}"
                        SET "{facial_flag_col}" = FALSE, "{facial_data_col}" = NULL
                        WHERE "{facial_flag_col}" = TRUE"""
                 )
-
-            # Batch update facial data
+                  
             for student_no, facial_data_blob, has_facial, updated_at in facial_data:
                 local_cur.execute(
                     f"""
@@ -1371,7 +1308,7 @@ class DataSyncManager:
                     (Binary(facial_data_blob) if facial_data_blob else None,
                      has_facial, updated_at, student_no),
                 )
-            # Clear facial data on local students that no longer have it in cloud (incremental only)
+                                                                                             
             if not full:
                 cloud_cur.execute(
                     f'SELECT student_no FROM "{students_table}" WHERE "{facial_flag_col}" = TRUE'
@@ -1403,9 +1340,8 @@ class DataSyncManager:
     
     def queue_log_upload(self, log_type: str, student_no: str, timestamp: datetime, 
                         method_id: int, status: str = 'present'):
-        """Queue a log entry for upload to cloud"""
         self.sync_queue.add('log_entry', {
-            'log_type': log_type,  # 'entry' or 'exit'
+            'log_type': log_type,                     
             'student_no': student_no,
             'timestamp': timestamp,
             'method_id': method_id,
@@ -1413,12 +1349,10 @@ class DataSyncManager:
         })
     
     def _save_failed_upload(self, log_data: dict):
-        """Save failed upload to local database for later retry"""
         try:
             local_conn, _ = get_local_connection()
             local_cur = local_conn.cursor()
-            
-            # Create table if it doesn't exist
+                                      
             local_cur.execute("""
                 CREATE TABLE IF NOT EXISTS failed_uploads (
                     id SERIAL PRIMARY KEY,
@@ -1433,7 +1367,6 @@ class DataSyncManager:
                 )
             """)
             
-            # Insert failed upload
             local_cur.execute("""
                 INSERT INTO failed_uploads (log_type, student_no, timestamp, method_id, status, retry_count)
                 VALUES (%s, %s, %s, %s, %s, %s)
@@ -1455,12 +1388,10 @@ class DataSyncManager:
             )
     
     def _retry_failed_uploads(self):
-        """Retry uploading logs from failed_uploads table"""
         try:
             local_conn, _ = get_local_connection()
             local_cur = local_conn.cursor()
-            
-            # Check if table exists
+                       
             local_cur.execute("""
                 SELECT COUNT(*) FROM information_schema.tables 
                 WHERE table_schema = 'public' AND table_name = 'failed_uploads'
@@ -1469,8 +1400,7 @@ class DataSyncManager:
                 local_cur.close()
                 local_conn.close()
                 return
-            
-            # Get failed uploads (limit to prevent memory issues)
+                                                        
             local_cur.execute("""
                 SELECT log_type, student_no, timestamp, method_id, status, id
                 FROM failed_uploads
@@ -1497,7 +1427,7 @@ class DataSyncManager:
                 
                 success = self._upload_log_entry(log_data)
                 if success:
-                    # Remove from failed_uploads on success
+                                                           
                     try:
                         local_conn, _ = get_local_connection()
                         local_cur = local_conn.cursor()
@@ -1515,13 +1445,10 @@ class DataSyncManager:
             logger.warning("Retry failed_uploads pass encountered an error: %s", e)
     
     def _upload_pending_logs(self):
-        """Upload pending logs from queue to cloud"""
         uploaded = 0
         failed = 0
-        
-        # First, try to retry any previously failed uploads
+                                                      
         self._retry_failed_uploads()
-        
         while True:
             operation = self.sync_queue.get(timeout=1)
             if not operation:
@@ -1534,12 +1461,12 @@ class DataSyncManager:
                         uploaded += 1
                     else:
                         failed += 1
-                        # Retry logic
+                                     
                         if operation['retry_count'] < 5:
                             operation['retry_count'] += 1
                             self.sync_queue.queue.put(operation)
                         else:
-                            # Max retries reached - save to persistent storage (silent)
+                                                                                       
                             self._save_failed_upload(operation['data'])
                 else:
                     failed += 1
@@ -1551,15 +1478,13 @@ class DataSyncManager:
                     operation['retry_count'] = operation.get('retry_count', 0) + 1
                     self.sync_queue.queue.put(operation)
                 else:
-                    # Max retries reached - save to persistent storage
+                                                                      
                     if 'data' in operation:
                         self._save_failed_upload(operation['data'])
         if uploaded or failed:
             logger.info("Upload queue cycle complete: uploaded=%d failed=%d", uploaded, failed)
         
-    
     def _upload_log_entry(self, log_data: dict) -> bool:
-        """Upload a single log entry to cloud"""
         cloud_conn = None
         cloud_cur = None
         try:
@@ -1571,8 +1496,7 @@ class DataSyncManager:
             timestamp = log_data['timestamp']
             method_id = log_data['method_id']
             status = log_data['status']
-            
-            # Only write to monitoring_logs in the cloud (no attendance_logs / entry_logs / exit_logs)
+                                                             
             if log_type == 'entry':
                 cloud_cur.execute("""
                     INSERT INTO monitoring_logs (
@@ -1617,7 +1541,7 @@ class DataSyncManager:
                     pass
             return False
         finally:
-            # Ensure cleanup
+                            
             if cloud_cur:
                 try:
                     cloud_cur.close()
@@ -1630,7 +1554,6 @@ class DataSyncManager:
                     pass
     
     def get_sync_status(self) -> dict:
-        """Get current sync status"""
         return {
             'running': self.running,
             'last_sync': self.last_sync_time.isoformat() if self.last_sync_time else None,

@@ -51,6 +51,8 @@ DEFAULT_SLIDESHOW_CONFIG = {
 
 DEFAULT_APP_CONFIG = {
     "run_main_on_startup": False,
+    "face_verify_sim_threshold": 0.75,
+    "face_identify_sim_threshold": 0.70,
 }
 
 def _get_config_dir() -> Path:
@@ -324,6 +326,14 @@ def get_app_config() -> dict:
     if isinstance(app_cfg, dict):
         merged.update(app_cfg)
     merged["run_main_on_startup"] = bool(merged.get("run_main_on_startup", False))
+    try:
+        merged["face_verify_sim_threshold"] = float(merged.get("face_verify_sim_threshold", 0.75))
+    except (TypeError, ValueError):
+        merged["face_verify_sim_threshold"] = DEFAULT_APP_CONFIG["face_verify_sim_threshold"]
+    try:
+        merged["face_identify_sim_threshold"] = float(merged.get("face_identify_sim_threshold", 0.70))
+    except (TypeError, ValueError):
+        merged["face_identify_sim_threshold"] = DEFAULT_APP_CONFIG["face_identify_sim_threshold"]
     return merged
 
 def save_config(

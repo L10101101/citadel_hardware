@@ -1,12 +1,10 @@
 import unittest
-
 import numpy as np
-
 
 try:
     import face_recognition as fr
     _IMPORT_ERROR = None
-except Exception as e:  # pragma: no cover
+except Exception as e:
     fr = None
     _IMPORT_ERROR = e
 
@@ -20,7 +18,6 @@ class TestFaceRecognitionLogic(unittest.TestCase):
         self.assertEqual(msg, "Face too small")
 
     def test_quality_check_too_dark(self):
-        # Size passes, but brightness is extremely low.
         img = np.zeros((160, 160, 3), dtype=np.uint8)
         ok, msg = fr._face_quality_check(img)
         self.assertFalse(ok)
@@ -34,7 +31,6 @@ class TestFaceRecognitionLogic(unittest.TestCase):
             fr.IDENTIFY_SIM_THRESHOLD = 0.69
             self.assertAlmostEqual(fr._similarity_threshold("verify"), 0.81)
             self.assertAlmostEqual(fr._similarity_threshold("identify"), 0.69)
-            # Unknown mode should default to verify threshold.
             self.assertAlmostEqual(fr._similarity_threshold("unknown"), 0.81)
         finally:
             fr.VERIFY_SIM_THRESHOLD = old_verify

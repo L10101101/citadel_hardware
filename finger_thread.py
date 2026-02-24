@@ -4,6 +4,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from fingerprint_reader import FingerprintReader
 from time import sleep
 
+
 class FingerprintThread(QThread):
     fingerprintDetected = pyqtSignal(str)
     deviceAvailabilityChanged = pyqtSignal(bool)
@@ -82,7 +83,6 @@ class FingerprintThread(QThread):
                 try:
                     result = self.reader.identify(template)
                 except Exception:
-                    # DB/decryption errors should not flip device availability.
                     sleep(0.2)
                     continue
                 if result:

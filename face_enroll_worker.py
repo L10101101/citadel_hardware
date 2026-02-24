@@ -6,11 +6,27 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from face_enrollment import (
     extract_embedding,
     save_to_cloud,
+    save_to_db,
     open_camera,
     get_face,
     STILL_DURATION,
     face_quality_metrics,
 )
+
+
+def persist_enrollment_embedding(student_no, emb):
+    try:
+        save_to_cloud(student_no, emb)
+        return True, "Success"
+    except Exception as e:
+        if isinstance(e, ValueError):
+            return False, f"Error {e}"
+        try:
+            save_to_db(student_no, emb)
+            return True, "Saved locally (cloud unavailable)"
+        except Exception as local_err:
+            return False, f"Error {e}; local fallback failed: {local_err}"
+
 
 class FaceEnrollWorker(QThread):
     finished = pyqtSignal(bool, str)
@@ -34,6 +50,7 @@ class FaceEnrollWorker(QThread):
             sample_start = None
             frame_count = 0
             DETECT_INTERVAL = 3
+            SAMPLE_TARGET = 3
             last_detect_time = 0
 
             while self._running:
@@ -81,8 +98,7 @@ class FaceEnrollWorker(QThread):
                                             embeddings.append(emb)
                                     except Exception:
                                         pass
-                                # Collect a few good samples then average to one embedding.
-                                if len(embeddings) >= 5 or (sample_start and now - sample_start >= 2.0):
+                                if len(embeddings) >= SAMPLE_TARGET or (sample_start and now - sample_start >= 2.0):
                                     if embeddings:
                                         face_crop = crop
                                         break
@@ -92,7 +108,7 @@ class FaceEnrollWorker(QThread):
                     last_box = face_box
 
                     if still_start and now - still_start >= STILL_DURATION:
-                        text = f"Sampling... {len(embeddings)}/5"
+                        text = f"Sampling... {len(embeddings)}/{SAMPLE_TARGET}"
                     else:
                         text = f"Capturing in {max(0, STILL_DURATION - (now - still_start)):.1f}s" \
                             if still_start else "Hold Still"
@@ -124,13 +140,10 @@ class FaceEnrollWorker(QThread):
                 return
 
             if embeddings:
-                try:
-                    emb = np.mean(np.stack(embeddings, axis=0), axis=0).astype(np.float32)
-                    emb = emb / (np.linalg.norm(emb) + 1e-9)
-                    save_to_cloud(self.student_no, emb)
-                    self.finished.emit(True, "Success")
-                except Exception as e:
-                    self.finished.emit(False, f"Error {e}")
+                emb = np.mean(np.stack(embeddings, axis=0), axis=0).astype(np.float32)
+                emb = emb / (np.linalg.norm(emb) + 1e-9)
+                ok, message = persist_enrollment_embedding(self.student_no, emb)
+                self.finished.emit(ok, message)
             elif self._running:
                 self.finished.emit(False, "Enrollment Cancelled")
 

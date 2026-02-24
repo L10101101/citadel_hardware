@@ -28,9 +28,6 @@ class FaceLockoutGuard:
         return False
 
     def register_result(self, ok: bool, now: float) -> bool:
-        """
-        Returns True when a lockout is newly triggered by a failed result.
-        """
         now = float(now)
         if ok:
             self.fail_streak = 0

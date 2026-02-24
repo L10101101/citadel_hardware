@@ -1,6 +1,7 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 from face_recognition import verify_face, load_gallery
 
+
 class FaceThread(QThread):
     result_ready = pyqtSignal(bool, str, tuple)
 

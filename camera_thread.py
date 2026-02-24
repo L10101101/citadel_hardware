@@ -3,6 +3,7 @@ import numpy as np
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+
 class CameraThread(QThread):
     frameCaptured = pyqtSignal(np.ndarray)
     deviceAvailabilityChanged = pyqtSignal(bool)

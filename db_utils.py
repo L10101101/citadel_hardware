@@ -3,6 +3,7 @@ import socket
 
 from config_store import get_local_db, get_cloud_db
 
+
 class _DBConfigProxy:
     def __init__(self, getter):
         self._getter = getter
@@ -13,12 +14,14 @@ class _DBConfigProxy:
 LOCAL_DB = _DBConfigProxy(get_local_db)
 CLOUD_DB = _DBConfigProxy(get_cloud_db)
 
+
 def has_internet(host="8.8.8.8", port=53, timeout=3):
     try:
         with socket.create_connection((host, port), timeout):
             return True
     except Exception:
         return False
+
 
 def can_connect(host, port, timeout=3):
     try:
@@ -29,6 +32,7 @@ def can_connect(host, port, timeout=3):
 
 CONNECT_TIMEOUT_SEC = 15
 APP_DB_TIMEZONE = "Asia/Manila"
+
 
 def get_cloud_connection():
     if not has_internet():
@@ -48,6 +52,7 @@ def get_cloud_connection():
     except Exception as e:
         raise ConnectionError(f"Cloud connection failed: {e}")
 
+
 def get_local_connection():
     local = get_local_db()
     if not can_connect(local["host"], int(local["port"])):
@@ -63,6 +68,7 @@ def get_local_connection():
         return conn, "local"
     except Exception as e:
         raise ConnectionError(f"Local connection failed: {e}")
+
 
 def get_connection(mode):
     if mode == "cloud":

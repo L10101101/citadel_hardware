@@ -1,15 +1,15 @@
 import os
 import sys
-from time import sleep
 import logging
+
 from cryptography.fernet import Fernet
+from time import sleep
 from db_utils import get_connection
 from config_store import get_fernet_key
 
 logger = logging.getLogger(__name__)
 
 def _load_zkfp2():
-    # Ensure native SDK paths are visible before loading pyzkfp/pythonnet assembly.
     candidate_dirs = [
         r"C:\Program Files (x86)\FPSensor\Biokey\ZKFPSensors",
         r"C:\Program Files (x86)\FPSensor\Biokey",
@@ -24,14 +24,16 @@ def _load_zkfp2():
             if d not in sys.path:
                 sys.path.append(d)
             os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
-    from pyzkfp import ZKFP2  # defer import until DLL search paths are configured
+    from pyzkfp import ZKFP2
     return ZKFP2
+
 
 def _get_cipher():
     key = get_fernet_key()
     if not key:
         raise ValueError("Fernet key not configured.")
     return Fernet(key.encode() if isinstance(key, str) else key)
+
 
 class FingerprintReader:
     def __init__(self):

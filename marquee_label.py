@@ -1,5 +1,6 @@
 from PyQt6.QtCore import QTimer
 
+
 class FooterMarquee:
     def __init__(self, label, speed=40, padding=60, left_to_right=True):
         self.label = label

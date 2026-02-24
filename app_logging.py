@@ -1,9 +1,9 @@
 import logging
 import os
 import json
+
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-
 
 _CONFIGURED = False
 
@@ -65,7 +65,6 @@ def configure_logging(app_name: str = "citadel", level: int = logging.INFO) -> P
         file_handler.setFormatter(fmt)
         root.addHandler(file_handler)
     except Exception:
-        # Keep app startup resilient even if file logging cannot initialize.
         pass
 
     logging.captureWarnings(True)

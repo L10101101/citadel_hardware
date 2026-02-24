@@ -8,7 +8,7 @@ import numpy as np
 from openvino.runtime import Core
 from cryptography.fernet import Fernet
 from db_utils import get_connection
-from config_store import get_fernet_key
+from config_store import get_fernet_key, get_app_config
 from utils import resource_path
 
 logger = logging.getLogger(__name__)
@@ -16,14 +16,30 @@ logger = logging.getLogger(__name__)
 PROCESS_WIDTH, PROCESS_HEIGHT = 960, 540
 CONF_THRESHOLD = 0.75
 SIM_THRESHOLD = 0.75
-VERIFY_SIM_THRESHOLD = float(os.environ.get("FACE_VERIFY_SIM_THRESHOLD", str(SIM_THRESHOLD)))
-IDENTIFY_SIM_THRESHOLD = float(os.environ.get("FACE_IDENTIFY_SIM_THRESHOLD", "0.70"))
+
+_app_cfg = get_app_config()
+
+VERIFY_SIM_THRESHOLD = float(
+    os.environ.get(
+        "FACE_VERIFY_SIM_THRESHOLD",
+        str(_app_cfg.get("face_verify_sim_threshold", SIM_THRESHOLD)),
+    )
+)
+
+IDENTIFY_SIM_THRESHOLD = float(
+    os.environ.get(
+        "FACE_IDENTIFY_SIM_THRESHOLD",
+        str(_app_cfg.get("face_identify_sim_threshold", 0.70)),
+    )
+)
+
 LIVENESS_REAL_THRESHOLD = 0.85
 MIN_REC_FACE_SIZE = 90
 MIN_REC_BRIGHTNESS = 35.0
 MAX_REC_BRIGHTNESS = 230.0
 MIN_REC_SHARPNESS = 45.0
 EMBEDDING_DIM = 256
+
 PERF_LOG_EVERY = max(0, int(os.environ.get("FACE_PERF_LOG_EVERY", "0")))
 GALLERY_TTL_SECONDS = max(0, int(os.environ.get("FACE_GALLERY_TTL_SECONDS", "300")))
 
@@ -32,6 +48,7 @@ REC_MODEL = resource_path("models/intel/face-reidentification-retail-0095/FP16/f
 SPOOF_MODEL = resource_path("models/intel/anti-spoof-mn3/anti-spoof-mn3.onnx")
 _ie = Core()
 _model_file_errors = []
+
 
 def _load_model(model_path, preferred=("GPU", "CPU")):
     if not os.path.exists(model_path):
@@ -70,6 +87,7 @@ def _similarity_threshold(mode: str = "verify") -> float:
         return IDENTIFY_SIM_THRESHOLD
     return VERIFY_SIM_THRESHOLD
 
+
 def _get_fernet():
     global _fernet_instance
     if _fernet_instance is not None:
@@ -80,6 +98,7 @@ def _get_fernet():
     _fernet_instance = Fernet(key.encode() if isinstance(key, str) else key)
     return _fernet_instance
 
+
 def _get_openvino_libs():
     if getattr(sys, "frozen", False):
         return os.path.join(sys._MEIPASS, "openvino_libs")
@@ -88,6 +107,7 @@ def _get_openvino_libs():
 _openvino_libs = _get_openvino_libs()
 if os.path.exists(_openvino_libs):
     os.environ["PATH"] = _openvino_libs + os.pathsep + os.environ.get("PATH", "")
+
 
 def load_gallery(force_reload=False):
     global _gallery_cache, _gallery_embeddings, _gallery_student_nos, _gallery_loaded_at
@@ -167,6 +187,7 @@ def load_gallery(force_reload=False):
         _gallery_loaded_at = now
     return _gallery_cache
 
+
 def reset_models():
     global _det_model, _rec_model, _spoof_model, _gallery_cache, _gallery_embeddings, _gallery_student_nos, _gallery_loaded_at
     _gallery_cache = None
@@ -180,12 +201,14 @@ def reset_models():
     except Exception:
         logger.exception("Failed to reset face recognition models")
 
+
 def preprocess(img, h, w, rgb=False):
     resized = cv2.resize(img, (w, h), interpolation=cv2.INTER_AREA)
     if rgb:
         resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     blob = np.transpose(resized, (2, 0, 1))[None].astype(np.float32, copy=False)
     return blob
+
 
 def _normalize_lighting(face_crop):
     lab = cv2.cvtColor(face_crop, cv2.COLOR_BGR2LAB)
@@ -212,6 +235,7 @@ def _face_quality_check(face_crop):
         return False, "Too blurry"
     return True, None
 
+
 def get_embedding(face_crop):
     if not _rec_model:
         return None
@@ -220,21 +244,15 @@ def get_embedding(face_crop):
     out = _rec_model([blob])[_rec_model.output(0)].flatten()
     return out / (np.linalg.norm(out) + 1e-9)
 
+
 def _is_live_face(face_crop):
-    """
-    anti-spoof-mn3 output: [real_prob, spoof_prob]
-    Docs: class 0 = real, class 1 = spoof.
-    """
     if not _spoof_model:
-        # Security-first: if liveness model is unavailable, reject.
         return False
     if face_crop is None or face_crop.size == 0:
         return False
     try:
-        # anti-spoof-mn3 converted/ONNX path expects BGR, 1x3x128x128.
         resized = cv2.resize(face_crop, (_spoof_w, _spoof_h), interpolation=cv2.INTER_AREA)
         blob = np.transpose(resized, (2, 0, 1))[None].astype(np.float32, copy=False)
-        # Recommended normalization from model card.
         mean = np.array([151.2405, 119.5950, 107.8395], dtype=np.float32).reshape(1, 3, 1, 1)
         scale = np.array([63.0105, 56.4570, 55.0035], dtype=np.float32).reshape(1, 3, 1, 1)
         blob = (blob - mean) / scale
@@ -242,7 +260,6 @@ def _is_live_face(face_crop):
         if out.size < 2:
             return False
         scores = out[:2]
-        # Some exports emit logits; normalize to probabilities when needed.
         if np.any(scores < 0.0) or abs(float(scores.sum()) - 1.0) > 0.1:
             exps = np.exp(scores - np.max(scores))
             scores = exps / (np.sum(exps) + 1e-9)
@@ -251,6 +268,7 @@ def _is_live_face(face_crop):
         return real_prob >= LIVENESS_REAL_THRESHOLD and real_prob > spoof_prob
     except Exception:
         return False
+
 
 def verify_face(school_id, frame, gallery, return_box=False):
     global _perf_counter

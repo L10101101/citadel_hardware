@@ -9,6 +9,7 @@ from db_utils import LOCAL_DB, CLOUD_DB, get_local_connection
 
 logger = logging.getLogger(__name__)
 
+
 def local_needs_schema() -> bool:
     try:
         local_conn, _ = get_local_connection()
@@ -25,6 +26,7 @@ def local_needs_schema() -> bool:
         return not exists
     except Exception:
         return True
+
 
 def _strip_fk_constraints_from_schema_sql(schema_path: str) -> None:
     with open(schema_path, "r", encoding="utf-8", errors="replace") as f:
@@ -53,6 +55,7 @@ def _strip_fk_constraints_from_schema_sql(schema_path: str) -> None:
 
     with open(schema_path, "w", encoding="utf-8") as f:
         f.write(content)
+
 
 def sync_schema_from_cloud() -> bool:
     dump_exe = "pg_dump"
@@ -140,6 +143,7 @@ def sync_schema_from_cloud() -> bool:
         except Exception:
             pass
 
+
 def sync_full_table(cloud_cur, local_cur, table_name: str, pk_column: str = "id") -> None:
     cloud_cur.execute(
         """
@@ -197,6 +201,7 @@ def sync_full_table(cloud_cur, local_cur, table_name: str, pk_column: str = "id"
         local_cur.execute(sql, row)
     logger.info("Synced %d rows for %s", len(rows), table_name)
 
+
 def sync_reference_tables(cloud_conn, local_conn) -> None:
     cloud_cur = cloud_conn.cursor()
     local_cur = local_conn.cursor()
@@ -248,6 +253,7 @@ def sync_reference_tables(cloud_conn, local_conn) -> None:
     finally:
         cloud_cur.close()
         local_cur.close()
+
 
 def sync_verification_methods(cloud_conn, local_conn) -> None:
     cloud_cur = cloud_conn.cursor()

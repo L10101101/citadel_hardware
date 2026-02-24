@@ -1,5 +1,6 @@
 import shutil
 
+
 def check_postgresql_installed() -> tuple[bool, str]:
     pg_dump = shutil.which("pg_dump")
     psql = shutil.which("psql")

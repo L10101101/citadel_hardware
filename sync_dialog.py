@@ -11,6 +11,7 @@ from PyQt6.QtCore import QTimer, Qt, QEventLoop
 from data_sync import DataSyncManager
 from db_utils import has_internet
 
+
 class SyncDialog(QDialog):
     _PROGRESS_STEPS = [
         "Connecting to cloud...",
@@ -162,7 +163,6 @@ class SyncDialog(QDialog):
 
     def handleSyncError(self, error: str):
         self._sync_failed = True
-        # Detect no-internet both from the error text and the actual network state.
         no_internet = "no internet" in (error or "").lower() or not has_internet()
         msg = "No internet connection." if no_internet else (error or "Sync failed.")
         self.status_label.setText(f"Sync failed: {msg}")
@@ -173,8 +173,6 @@ class SyncDialog(QDialog):
             "QProgressBar::chunk { border-radius: 8px; background-color: #F44336; }"
         )
 
-        # For callers that explicitly allow offline mode (e.g. Citadel main),
-        # automatically proceed instead of forcing Retry/Exit on no-internet errors.
         if no_internet and self._allow_offline:
             QTimer.singleShot(800, self.accept)
             return

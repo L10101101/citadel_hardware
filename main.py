@@ -4,6 +4,7 @@ import os
 import logging
 from collections import deque, Counter
 import cv2
+import gui.resource_rc
 
 from PyQt6.QtWidgets import (
     QApplication,
@@ -17,11 +18,20 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
 )
+
 from PyQt6 import QtCore
 from PyQt6.QtCore import QTimer, QDateTime, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QPainterPath, QRegion
-import gui.resource_rc
 from main_ui import Ui_Citadel
+from emergency_mode import EmergencyModeController
+from finger_thread import FingerprintThread
+from camera_handler import CameraHandler
+from verification_handler import VerificationHandler
+from marquee_label import FooterMarquee
+from connection_monitor import ConnectionMonitor
+from data_sync import DataSyncManager
+from sync_dialog import SyncDialog
+from face_lockout import FaceLockoutGuard
 from utils import (
     lookup_student,
     log_entry,
@@ -31,27 +41,20 @@ from utils import (
     get_slideshow_images_local,
     format_program_label,
 )
+
 from config_store import get_slideshow_config
 from async_email_notifier import notify_parent_task
 from async_sms_notifier import notify_parent_sms_task
-from finger_thread import FingerprintThread
-from camera_handler import CameraHandler
-from verification_handler import VerificationHandler
-from marquee_label import FooterMarquee
-from connection_monitor import ConnectionMonitor
-from data_sync import DataSyncManager
-from sync_dialog import SyncDialog
 from utils import set_sync_manager
-from emergency_mode import EmergencyModeController
 from status_labels import (
     StatusLabelController,
     status_entry_logged,
     status_unrecognized,
 )
 from app_logging import configure_logging
-from face_lockout import FaceLockoutGuard
 
 logger = logging.getLogger(__name__)
+
 
 class MainWindow(QMainWindow, Ui_Citadel):
     def __init__(self, sync_manager: DataSyncManager):
@@ -73,7 +76,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._showing_student_details = False
         self._camera_available = True
         self._fingerprint_available = True
-        # QR scanner is keyboard-wedge in this app and cannot be reliably hardware-detected.
         self._had_missing_devices = False
         self._init_verification_icons()
         self.reset_info()
@@ -139,7 +141,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         )
 
         self.reset_verification_state()
-
         self.inactivity_timer = QTimer()
         self.inactivity_timer.setInterval(2000)
         QTimer.singleShot(500, self.start_inactivity_timer)
@@ -736,7 +737,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
             return
         self._record_face_result_metric(ok, info)
         self._face_vote_window.append(bool(ok))
-        # Cooldown lock: after any failed frame, require short stable period before accepting.
         if not ok:
             self._face_accept_cooldown_until = now + 0.8
             if self._face_lockout.register_result(False, now):
@@ -820,7 +820,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         notify_parent_task(student_no)
         notify_parent_sms_task(student_no)
         self.inactivity_timer.start()
-        # Keep student details visible, but allow next verification immediately.
         self.verification_active = False
         self.current_qr = None
         self.hiddenInput.setEnabled(True)
@@ -1028,6 +1027,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.fingerprint_thread.wait(2000)
         super().closeEvent(event)
 
+
 if __name__ == "__main__":
     configure_logging("citadel-main")
     app = QApplication(sys.argv)
@@ -1053,4 +1053,3 @@ if __name__ == "__main__":
     window = MainWindow(sync_manager=sync_dlg.sync_manager)
     window.showFullScreen()
     sys.exit(app.exec())
-

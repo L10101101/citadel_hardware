@@ -12,6 +12,7 @@ from status_labels import (
 from async_email_notifier import notify_parent_task, notify_exit
 from async_sms_notifier import notify_parent_sms_task, notify_exit_sms
 
+
 class VerificationHandler:
     def __init__(self, main_window):
         self.main = main_window
@@ -99,6 +100,7 @@ class VerificationHandler:
                 self._schedule_reset_info()
         self.main.verification_active = False
         self.main.hiddenInput.setEnabled(True)
+
     def on_qr_input_received(self, qr_value):
         if getattr(self.main, "emergency_mode", None) and self.main.emergency_mode.active:
             return
@@ -113,7 +115,6 @@ class VerificationHandler:
         self.main.cancel_reset_info()
         self.main.reset_info()
         self.main.fingerprint_thread.deactivate()
-        # Restart idle slideshow countdown from the moment QR flow begins.
         self.main._reset_slideshow_timer()
 
         qr_value = qr_value.strip()
@@ -196,7 +197,6 @@ class VerificationHandler:
         if self.main.verification_active and self.main.current_qr:
             self.main.reset_verification_state()
         status_unrecognized(self.main.set_status)
-        # Ensure slideshow does not appear immediately after timeout/failure.
         self.main._reset_slideshow_timer()
         self._schedule_reset_info()
         self.main.hiddenInput.setEnabled(True)

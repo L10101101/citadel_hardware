@@ -1,4 +1,3 @@
-import os
 import asyncio
 import threading
 import logging
@@ -10,11 +9,13 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 def _get_twilio_client():
     cfg = get_twilio_config()
     if not cfg.get("account_sid") or not cfg.get("auth_token"):
         return None
     return Client(cfg["account_sid"], cfg["auth_token"])
+
 
 async def send_sms(guardian_number: str, student_name: str, action: str):
     try:
@@ -39,6 +40,7 @@ async def send_sms(guardian_number: str, student_name: str, action: str):
 
     except Exception as e:
         logger.error("SMS send failed: %s", e)
+
 
 async def notify_parent_sms(student_no: str, action: str = "entered"):
     conn = None
@@ -76,13 +78,16 @@ async def notify_parent_sms(student_no: str, action: str = "entered"):
             except Exception:
                 pass
 
+
 def notify_parent_sms_task(student_no: str, action: str = "entered"):
     def runner():
         asyncio.run(notify_parent_sms(student_no, action))
     threading.Thread(target=runner, daemon=True).start()
 
+
 def notify_entry_sms(student_no: str):
     notify_parent_sms_task(student_no, "entered")
+
 
 def notify_exit_sms(student_no: str):
     notify_parent_sms_task(student_no, "exited")

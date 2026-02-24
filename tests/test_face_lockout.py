@@ -23,7 +23,7 @@ class TestFaceLockoutGuard(unittest.TestCase):
     def test_notice_interval(self):
         guard = FaceLockoutGuard(trigger_count=2, lockout_seconds=2.0, notice_interval_seconds=0.8)
         guard.register_result(False, 10.0)
-        guard.register_result(False, 10.1)  # triggers lockout; last_notice_at=10.1
+        guard.register_result(False, 10.1)
         self.assertFalse(guard.should_emit_notice(10.2))
         self.assertTrue(guard.should_emit_notice(10.95))
         self.assertFalse(guard.should_emit_notice(11.0))

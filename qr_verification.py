@@ -3,6 +3,7 @@ import msvcrt
 
 from db_utils import get_connection
 
+
 def read_qr_code():
     qr_data = ""
     while True:
@@ -11,6 +12,7 @@ def read_qr_code():
             break
         qr_data += ch
     return qr_data.strip()
+
 
 def verify_qr_in_db(qr_value):
     try:

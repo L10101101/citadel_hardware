@@ -1,5 +1,6 @@
 import os
 import sys
+import gui.resource_rc
 
 from PyQt6.QtWidgets import (
     QApplication,
@@ -15,25 +16,27 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QStyle,
 )
+
 from PyQt6.QtCore import QTimer, QDateTime, Qt, QSettings, QEventLoop, QEvent
 from PyQt6.QtGui import QAction, QIcon, QPixmap, QTransform, QPainter, QColor
-import gui.resource_rc
 from enroll_ui import Ui_EnrollWindow
 from login_ui import Ui_LoginDialog
 from enrollment_base import BaseEnrollmentHandler
 from marquee_label import FooterMarquee
+from sync_dialog import SyncDialog
+from data_sync import DataSyncManager
+
 from db_utils import get_connection, has_internet
 from config_store import is_configured
 from setup_wizard import run_setup_wizard
 from utils import resource_path, set_sync_manager
-from sync_dialog import SyncDialog
-from data_sync import DataSyncManager
 from app_logging import configure_logging
 
 try:
     import bcrypt
 except ImportError:
     bcrypt = None
+
 
 class TermsDialog(QDialog):
     def __init__(self, parent=None):
@@ -296,7 +299,7 @@ class LoginDialog(QDialog):
             cur.execute(
                 """
                 SELECT password
-                FROM accounts
+                FROM admins
                 WHERE username = %s OR email = %s
                 """,
                 (username, username),

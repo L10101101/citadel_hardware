@@ -1,9 +1,8 @@
 import unittest
+import config_store
 from unittest.mock import patch
 
 from cryptography.fernet import Fernet
-
-import config_store
 
 
 class TestConfigValidation(unittest.TestCase):

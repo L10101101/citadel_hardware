@@ -1,5 +1,6 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 
+
 class FingerEnrollWorker(QThread):
     finished = pyqtSignal(bool, str)
 

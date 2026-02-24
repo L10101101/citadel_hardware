@@ -1,8 +1,8 @@
 import argparse
 import csv
-from pathlib import Path
-
 import numpy as np
+
+from pathlib import Path
 
 
 def _load_scores(path: Path) -> np.ndarray:
@@ -18,7 +18,6 @@ def _load_scores(path: Path) -> np.ndarray:
             try:
                 values.append(float(cell))
             except ValueError:
-                # Skip header/non-numeric rows.
                 continue
     arr = np.array(values, dtype=np.float32)
     if arr.size == 0:
@@ -27,13 +26,12 @@ def _load_scores(path: Path) -> np.ndarray:
 
 
 def _rate_metrics(genuine: np.ndarray, impostor: np.ndarray, threshold: float) -> tuple[float, float]:
-    frr = float(np.mean(genuine < threshold))  # False Reject Rate
-    far = float(np.mean(impostor >= threshold))  # False Accept Rate
+    frr = float(np.mean(genuine < threshold))
+    far = float(np.mean(impostor >= threshold))
     return frr, far
 
 
 def _suggest_threshold(genuine: np.ndarray, impostor: np.ndarray, target_far: float) -> float:
-    # Pick the highest threshold whose FAR is <= target_far. If none, use min threshold.
     candidates = np.unique(np.concatenate([genuine, impostor]))
     best = float(np.min(candidates))
     for th in candidates:

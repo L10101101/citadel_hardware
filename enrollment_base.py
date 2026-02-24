@@ -1,9 +1,11 @@
+import logging
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap, QImage
-import logging
 from face_enroll_worker import FaceEnrollWorker
-from utils import resource_path
 from finger_enroll_thread import FingerEnrollWorker
+
+from utils import resource_path
 from db_utils import get_connection
 
 logger = logging.getLogger(__name__)

@@ -1,11 +1,13 @@
 from psycopg2 import Binary
-from fingerprint_reader import FingerprintReader
-from time import sleep
 from cryptography.fernet import Fernet
+from fingerprint_reader import FingerprintReader
+
+from time import sleep
 from db_utils import get_connection
 from config_store import get_fernet_key
 
 MAX_CAPTURE_ATTEMPTS = 5
+
 
 def encrypt_template(template: bytes) -> bytes:
     key = get_fernet_key()
@@ -48,6 +50,7 @@ def save_to_db(student_no: str, template: bytes):
     conn.commit()
     cur.close()
     conn.close()
+
 
 def capture_fingerprint(reader: FingerprintReader) -> bytes:
     for attempt in range(1, MAX_CAPTURE_ATTEMPTS + 1):

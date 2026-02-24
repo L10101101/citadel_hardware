@@ -3,6 +3,7 @@ from PyQt6.QtCore import QTimer, Qt, QPropertyAnimation, QEasingCurve, QPoint
 from PyQt6.QtGui import QPixmap, QPainter, QBrush, QColor
 from db_utils import has_internet
 
+
 class ConnectionNotification(QWidget):
     def __init__(self, parent=None, restored=False):
         super().__init__(parent)
@@ -89,6 +90,7 @@ class ConnectionNotification(QWidget):
         self.animation.finished.connect(self.hide)
         self.animation.start()
 
+
 class ConnectionMonitor:
     def __init__(self, main_window):
         self.main_window = main_window
@@ -112,7 +114,6 @@ class ConnectionMonitor:
             if self._wired_sync_manager_id == sm_id:
                 return
 
-            # Preserve the original callbacks once so repeated wiring does not chain wrappers.
             if not hasattr(sm, "_cm_base_on_sync_start"):
                 sm._cm_base_on_sync_start = getattr(sm, "on_sync_start", None)
                 sm._cm_base_on_sync_progress = getattr(sm, "on_sync_progress", None)

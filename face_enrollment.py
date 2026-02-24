@@ -2,6 +2,7 @@ import cv2
 import psycopg2
 import numpy as np
 import logging
+import time
 
 from openvino.runtime import Core
 from cryptography.fernet import Fernet
@@ -13,18 +14,23 @@ logger = logging.getLogger(__name__)
 
 CONF_THRESHOLD = 0.8
 STILL_DURATION = 2.0
+
 CAMERA_INDEX = 0
 CAMERA_WIDTH = 3840
 CAMERA_HEIGHT = 2160
 FPS = 30
+
 MIN_FACE_SIZE = 120
 MIN_BRIGHTNESS = 45.0
 MAX_BRIGHTNESS = 220.0
 MIN_SHARPNESS = 70.0
+CLOUD_ENROLL_MAX_RETRIES = 3
+CLOUD_ENROLL_BACKOFF_SEC = 0.5
 
 DET_MODEL = resource_path("models/intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml")
 REC_MODEL = resource_path("models/intel/face-reidentification-retail-0095/FP16/face-reidentification-retail-0095.xml")
 ie = Core()
+
 
 def _compile_with_fallback(model_path, preferred=("GPU", "CPU")):
     model = ie.read_model(model_path)
@@ -43,6 +49,7 @@ rec_model = _compile_with_fallback(REC_MODEL)
 det_output = det_model.output(0)
 rec_output = rec_model.output(0)
 
+
 def open_camera():
     cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
     if not cap.isOpened():
@@ -50,7 +57,6 @@ def open_camera():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, FPS)
-    # Best-effort camera tuning for mixed lighting environments.
     try:
         cap.set(cv2.CAP_PROP_AUTO_WB, 1)
     except Exception:
@@ -61,6 +67,7 @@ def open_camera():
         pass
     return cap
 
+
 def get_center_crop(frame):
     h, w, _ = frame.shape
     crop_size = min(h, w)
@@ -68,6 +75,7 @@ def get_center_crop(frame):
     y_start = (h - crop_size) // 2
     cropped = frame[y_start:y_start + crop_size, x_start:x_start + crop_size]
     return cropped
+
 
 def get_face(frame):
     h, w = frame.shape[:2]
@@ -85,6 +93,7 @@ def get_face(frame):
     best_face = max(faces, key=lambda f: f[4] * ((f[2] - f[0]) * (f[3] - f[1])))
     return best_face[:4]
 
+
 def _normalize_lighting(face_crop):
     lab = cv2.cvtColor(face_crop, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
@@ -92,6 +101,7 @@ def _normalize_lighting(face_crop):
     l = clahe.apply(l)
     lab = cv2.merge([l, a, b])
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
 
 def face_quality_metrics(face_crop):
     if face_crop is None or face_crop.size == 0:
@@ -110,12 +120,14 @@ def face_quality_metrics(face_crop):
         return {"ok": False, "reason": "blurry", "brightness": brightness, "sharpness": sharpness}
     return {"ok": True, "reason": "ok", "brightness": brightness, "sharpness": sharpness}
 
+
 def extract_embedding(face_crop):
     face_crop = _normalize_lighting(face_crop)
     resized = cv2.resize(face_crop, (128, 128))
     blob = np.expand_dims(resized.transpose(2, 0, 1), axis=0)
     emb = rec_model([blob])[rec_output].flatten().astype(np.float32)
     return emb / (np.linalg.norm(emb) + 1e-9)
+
 
 def save_to_cloud(student_no, emb):
     key = get_fernet_key()
@@ -125,26 +137,61 @@ def save_to_cloud(student_no, emb):
     emb_bytes = emb.tobytes()
     encrypted = cipher.encrypt(emb_bytes)
 
-    conn, source = get_connection("cloud")
-    cur = conn.cursor()
+    last_error = None
+    for attempt in range(1, CLOUD_ENROLL_MAX_RETRIES + 1):
+        conn = None
+        cur = None
+        try:
+            conn, source = get_connection("cloud")
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE students
+                SET facial_recognition_data = %s,
+                    has_facial_recognition = TRUE
+                WHERE student_no = %s
+            """, (psycopg2.Binary(encrypted), student_no))
+            conn.commit()
+            success = cur.rowcount > 0
+            if success:
+                logger.info("Saved face embedding to cloud for student %s", student_no)
+                return
+            logger.warning("Student not found in cloud while saving face embedding: %s", student_no)
+            raise ValueError(f"{student_no} Not Found")
+        except ValueError:
+            raise
+        except Exception as e:
+            last_error = e
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+            if attempt < CLOUD_ENROLL_MAX_RETRIES:
+                wait_sec = CLOUD_ENROLL_BACKOFF_SEC * (2 ** (attempt - 1))
+                logger.warning(
+                    "Cloud face enrollment failed attempt %d/%d for student %s: %s; retrying in %.1fs",
+                    attempt,
+                    CLOUD_ENROLL_MAX_RETRIES,
+                    student_no,
+                    e,
+                    wait_sec,
+                )
+                time.sleep(wait_sec)
+            else:
+                logger.warning(
+                    "Cloud face enrollment failed attempt %d/%d for student %s: %s",
+                    attempt,
+                    CLOUD_ENROLL_MAX_RETRIES,
+                    student_no,
+                    e,
+                )
+        finally:
+            if cur:
+                cur.close()
+            if conn:
+                conn.close()
+    raise RuntimeError(f"Cloud enrollment failed after {CLOUD_ENROLL_MAX_RETRIES} attempt(s): {last_error}")
 
-    cur.execute("""
-        UPDATE students
-        SET facial_recognition_data = %s,
-            has_facial_recognition = TRUE
-        WHERE student_no = %s
-    """, (psycopg2.Binary(encrypted), student_no))
-    conn.commit()
-
-    success = cur.rowcount > 0
-    cur.close()
-    conn.close()
-
-    if success:
-        logger.info("Saved face embedding to cloud for student %s", student_no)
-    else:
-        logger.warning("Student not found in cloud while saving face embedding: %s", student_no)
-        raise ValueError(f"{student_no} Not Found")
 
 def save_to_db(student_no, emb):
     key = get_fernet_key()
@@ -174,5 +221,3 @@ def save_to_db(student_no, emb):
     else:
         logger.warning("Student not found in local DB while saving face embedding: %s", student_no)
         raise ValueError(f"{student_no} Not Found")
-
-

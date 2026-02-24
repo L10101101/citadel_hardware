@@ -1,13 +1,12 @@
 import unittest
-from unittest.mock import patch
-
 import numpy as np
 
+from unittest.mock import patch
 
 try:
     import face_recognition as fr
     _IMPORT_ERROR = None
-except Exception as e:  # pragma: no cover
+except Exception as e:
     fr = None
     _IMPORT_ERROR = e
 
@@ -26,7 +25,7 @@ class TestGalleryCacheFallback(unittest.TestCase):
             fr._gallery_cache = {"S-1": {"embedding": emb}}
             fr._gallery_embeddings = np.stack([emb], axis=0).astype(np.float32)
             fr._gallery_student_nos = ["S-1"]
-            fr._gallery_loaded_at = 0.0  # stale relative to monotonic now
+            fr._gallery_loaded_at = 0.0
             fr.GALLERY_TTL_SECONDS = 1
 
             with patch("face_recognition.get_connection", side_effect=RuntimeError("db down")):

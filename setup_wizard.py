@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QFileDialog,
     QSpinBox,
+    QDoubleSpinBox,
     QRadioButton,
     QTabWidget,
     QListWidget,
@@ -370,7 +371,7 @@ class FinishPage(QWizardPage):
         ))
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, show_app_tab: bool | None = None):
         super().__init__(parent)
         self.setWindowTitle("Citadel Settings")
         self.setMinimumSize(720, 520)
@@ -383,6 +384,7 @@ class SettingsDialog(QDialog):
         self._sync_existing = get_sync_config()
         self._slideshow_existing = get_slideshow_config()
         self._app_existing = get_app_config()
+        self._show_app_tab = self._detect_show_app_tab() if show_app_tab is None else bool(show_app_tab)
 
         layout = QVBoxLayout(self)
         self.tabs = QTabWidget(self)
@@ -395,7 +397,8 @@ class SettingsDialog(QDialog):
         self._build_twilio_tab()
         self._build_fernet_tab()
         self._build_sync_tab()
-        self._build_app_tab()
+        if self._show_app_tab:
+            self._build_app_tab()
         self._build_slideshow_tab()
 
         btn_row = QHBoxLayout()
@@ -443,6 +446,7 @@ class SettingsDialog(QDialog):
         self.cloud_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.cloud_password.setPlaceholderText("Leave blank to keep existing")
         self.cloud_host = QLineEdit()
+        self.cloud_host.setPlaceholderText("Leave blank to keep existing host")
         self.cloud_port = QSpinBox()
         self.cloud_port.setRange(1, 65535)
 
@@ -456,7 +460,7 @@ class SettingsDialog(QDialog):
 
         self.cloud_dbname.setText(self._cloud_existing.get("dbname", ""))
         self.cloud_user.setText(self._cloud_existing.get("user", ""))
-        self.cloud_host.setText(self._cloud_existing.get("host", ""))
+        self.cloud_host.setText("")
         self.cloud_port.setValue(int(self._cloud_existing.get("port", 5432) or 5432))
 
     def _build_cloud_ssl_tab(self):
@@ -467,6 +471,9 @@ class SettingsDialog(QDialog):
         self.cloud_sslrootcert = QLineEdit()
         self.cloud_sslcert = QLineEdit()
         self.cloud_sslkey = QLineEdit()
+        self.cloud_sslrootcert.setPlaceholderText("Leave blank to keep existing root cert")
+        self.cloud_sslcert.setPlaceholderText("Leave blank to keep existing client cert")
+        self.cloud_sslkey.setPlaceholderText("Leave blank to keep existing client key")
 
         btn_root = QPushButton("Browse...")
         btn_root.clicked.connect(lambda: self._browse(self.cloud_sslrootcert, "CA certificate"))
@@ -494,9 +501,9 @@ class SettingsDialog(QDialog):
         self.tabs.addTab(tab, "Cloud SSL")
 
         self.cloud_sslmode.setCurrentText(self._cloud_existing.get("sslmode", "prefer") or "prefer")
-        self.cloud_sslrootcert.setText(self._cloud_existing.get("sslrootcert") or "")
-        self.cloud_sslcert.setText(self._cloud_existing.get("sslcert") or "")
-        self.cloud_sslkey.setText(self._cloud_existing.get("sslkey") or "")
+        self.cloud_sslrootcert.setText("")
+        self.cloud_sslcert.setText("")
+        self.cloud_sslkey.setText("")
 
     def _build_smtp_tab(self):
         tab = QGroupBox()
@@ -667,11 +674,36 @@ class SettingsDialog(QDialog):
     def _build_app_tab(self):
         tab = QGroupBox()
         layout = QVBoxLayout(tab)
+        form = QFormLayout()
         self.run_main_on_startup = QCheckBox("Run Citadel Main on Windows startup")
         self.run_main_on_startup.setChecked(bool(self._app_existing.get("run_main_on_startup", False)))
         layout.addWidget(self.run_main_on_startup)
+
+        self.face_verify_threshold = QDoubleSpinBox()
+        self.face_verify_threshold.setRange(0.0, 1.0)
+        self.face_verify_threshold.setDecimals(3)
+        self.face_verify_threshold.setSingleStep(0.01)
+        self.face_verify_threshold.setValue(float(self._app_existing.get("face_verify_sim_threshold", 0.75)))
+        form.addRow("Verify threshold:", self.face_verify_threshold)
+
+        self.face_identify_threshold = QDoubleSpinBox()
+        self.face_identify_threshold.setRange(0.0, 1.0)
+        self.face_identify_threshold.setDecimals(3)
+        self.face_identify_threshold.setSingleStep(0.01)
+        self.face_identify_threshold.setValue(float(self._app_existing.get("face_identify_sim_threshold", 0.70)))
+        form.addRow("Identify threshold:", self.face_identify_threshold)
+
+        layout.addLayout(form)
         layout.addStretch()
         self.tabs.addTab(tab, "Application")
+
+    def _detect_show_app_tab(self) -> bool:
+        entry = os.path.basename(sys.argv[0]).lower()
+        if "enroll" in entry:
+            return False
+        if "main" in entry:
+            return True
+        return self._resolve_main_exe_path() is not None
 
     def _startup_shortcut_path(self) -> str:
         startup_dir = os.path.join(
@@ -712,7 +744,6 @@ class SettingsDialog(QDialog):
                     return False, "Citadel.exe was not found near the settings executable."
                 with winreg.CreateKey(winreg.HKEY_CURRENT_USER, run_key_path) as key:
                     winreg.SetValueEx(key, run_value_name, 0, winreg.REG_SZ, "\"{}\"".format(main_exe))
-                # Remove legacy Startup .cmd entry if present.
                 if os.path.exists(shortcut_path):
                     os.remove(shortcut_path)
                 return True, ""
@@ -734,7 +765,7 @@ class SettingsDialog(QDialog):
     def _get_cloud_conn_for_slideshow(self, show_errors: bool = True):
         dbname = self.cloud_dbname.text().strip()
         user = self.cloud_user.text().strip()
-        host = self.cloud_host.text().strip()
+        host = self.cloud_host.text().strip() or (self._cloud_existing.get("host") or "")
         port = int(self.cloud_port.value())
         password = self.cloud_password.text().strip() or (self._cloud_existing.get("password") or "")
         if not (dbname and user and host and password):
@@ -747,9 +778,9 @@ class SettingsDialog(QDialog):
             return None
 
         sslmode = self.cloud_sslmode.currentText() or "require"
-        sslrootcert = (self.cloud_sslrootcert.text() or "").strip() or None
-        sslcert = (self.cloud_sslcert.text() or "").strip() or None
-        sslkey = (self.cloud_sslkey.text() or "").strip() or None
+        sslrootcert = (self.cloud_sslrootcert.text() or "").strip() or (self._cloud_existing.get("sslrootcert") or None)
+        sslcert = (self.cloud_sslcert.text() or "").strip() or (self._cloud_existing.get("sslcert") or None)
+        sslkey = (self.cloud_sslkey.text() or "").strip() or (self._cloud_existing.get("sslkey") or None)
         if sslmode in ("prefer", "disable") and (sslrootcert or sslcert or sslkey):
             sslmode = "require"
 
@@ -891,6 +922,10 @@ class SettingsDialog(QDialog):
         return False
 
     def _on_save(self):
+        cloud_host_value = self.cloud_host.text().strip() or (self._cloud_existing.get("host") or "")
+        cloud_sslrootcert_value = (self.cloud_sslrootcert.text() or "").strip() or (self._cloud_existing.get("sslrootcert") or "")
+        cloud_sslcert_value = (self.cloud_sslcert.text() or "").strip() or (self._cloud_existing.get("sslcert") or "")
+        cloud_sslkey_value = (self.cloud_sslkey.text() or "").strip() or (self._cloud_existing.get("sslkey") or "")
         if not self._required("Local DB name", self.local_dbname.text()):
             return
         if not self._required("Local DB user", self.local_user.text()):
@@ -901,7 +936,7 @@ class SettingsDialog(QDialog):
             return
         if not self._required("Cloud DB user", self.cloud_user.text()):
             return
-        if not self._required("Cloud DB host", self.cloud_host.text()):
+        if not self._required("Cloud DB host", cloud_host_value):
             return
 
         local_password = self.local_password.text().strip() or (self._local_existing.get("password") or "")
@@ -960,8 +995,19 @@ class SettingsDialog(QDialog):
         slideshow_cfg = {
             "interval": int(self.slideshow_interval.value()),
         }
+        existing_app_cfg = dict(self._app_existing) if isinstance(self._app_existing, dict) else {}
+        if self._show_app_tab:
+            run_main_on_startup = bool(self.run_main_on_startup.isChecked())
+            face_verify_threshold = float(self.face_verify_threshold.value())
+            face_identify_threshold = float(self.face_identify_threshold.value())
+        else:
+            run_main_on_startup = bool(existing_app_cfg.get("run_main_on_startup", False))
+            face_verify_threshold = float(existing_app_cfg.get("face_verify_sim_threshold", 0.75))
+            face_identify_threshold = float(existing_app_cfg.get("face_identify_sim_threshold", 0.70))
         app_cfg = {
-            "run_main_on_startup": bool(self.run_main_on_startup.isChecked()),
+            "run_main_on_startup": run_main_on_startup,
+            "face_verify_sim_threshold": face_verify_threshold,
+            "face_identify_sim_threshold": face_identify_threshold,
         }
 
         local_db = {
@@ -973,12 +1019,12 @@ class SettingsDialog(QDialog):
         cloud_db = {
             "dbname": self.cloud_dbname.text().strip(),
             "user": self.cloud_user.text().strip(),
-            "host": self.cloud_host.text().strip(),
+            "host": cloud_host_value,
             "port": self.cloud_port.value(),
             "sslmode": self.cloud_sslmode.currentText() or "require",
-            "sslrootcert": (self.cloud_sslrootcert.text() or "").strip(),
-            "sslcert": (self.cloud_sslcert.text() or "").strip(),
-            "sslkey": (self.cloud_sslkey.text() or "").strip(),
+            "sslrootcert": cloud_sslrootcert_value,
+            "sslcert": cloud_sslcert_value,
+            "sslkey": cloud_sslkey_value,
         }
         smtp = {
             "host": self.smtp_host.text().strip(),
@@ -1007,13 +1053,14 @@ class SettingsDialog(QDialog):
             app=app_cfg,
         )
         if ok:
-            startup_ok, startup_err = self._apply_startup_setting(bool(self.run_main_on_startup.isChecked()))
-            if not startup_ok:
-                QMessageBox.warning(
-                    self,
-                    "Startup Setting",
-                    f"Configuration saved, but startup setting could not be applied:\n{startup_err}",
-                )
+            if self._show_app_tab:
+                startup_ok, startup_err = self._apply_startup_setting(bool(self.run_main_on_startup.isChecked()))
+                if not startup_ok:
+                    QMessageBox.warning(
+                        self,
+                        "Startup Setting",
+                        f"Configuration saved, but startup setting could not be applied:\n{startup_err}",
+                    )
             QMessageBox.information(self, "Settings Saved", "Configuration has been saved.")
             self.accept()
         else:

@@ -4,6 +4,7 @@ from datetime import datetime
 from queue import Queue, Empty
 from typing import Optional
 
+
 class SyncQueue:
     def __init__(self):
         self.queue = Queue()

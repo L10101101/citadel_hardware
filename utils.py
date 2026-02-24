@@ -33,13 +33,16 @@ def format_program_label(program_name: str) -> str:
             text = f"B{initials}{(' ' + rest) if rest else ''}".strip()
     return text or "-"
 
+
 def get_base_path() -> str:
     if getattr(sys, "frozen", False):
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
 
+
 def resource_path(rel_path: str) -> str:
     return os.path.join(get_base_path(), rel_path.replace("/", os.sep))
+
 
 def get_slideshow_images_local():
     try:
@@ -62,9 +65,11 @@ def get_slideshow_images_local():
 
 _sync_manager = None
 
+
 def set_sync_manager(sync_manager):
     global _sync_manager
     _sync_manager = sync_manager
+
 
 def lookup_student(student_no):
     conn, _ = get_connection("local")
@@ -90,6 +95,7 @@ def lookup_student(student_no):
     year_section = f"{year}-{section}" if year and section else ""
     return name, program, year_section
 
+
 def _get_latest_log(student_no):
     conn, _ = get_connection("local")
     cur = conn.cursor()
@@ -112,6 +118,7 @@ def _get_latest_log(student_no):
         exit_ts = exit_ts.replace(tzinfo=None)
     return entry_ts, exit_ts
 
+
 def get_next_action(student_no):
     try:
         entry_ts, exit_ts = _get_latest_log(student_no)
@@ -123,8 +130,8 @@ def get_next_action(student_no):
         return "exit", entry_ts
     if exit_ts and (not entry_ts or exit_ts > entry_ts):
         return "entry", exit_ts
-    # fallback: if timestamps are equal or ambiguous, default to exit
     return "exit", max(entry_ts, exit_ts)
+
 
 def can_attempt_entry(student_no, set_status=None):
     now = datetime.now()
@@ -151,6 +158,7 @@ def can_attempt_entry(student_no, set_status=None):
         return False
 
     return True
+
 
 def log_entry(student_no, method_id, set_status=None):
     now = datetime.now()
@@ -185,7 +193,6 @@ def log_entry(student_no, method_id, set_status=None):
     else:
         last_ts = last_entry_time or last_exit_time
 
-    # Cooldown after any log: must wait before re-entry
     if last_ts is not None and now - last_ts < COOLDOWN:
         if set_status:
             status_cannot_enter_yet(set_status)
@@ -211,6 +218,7 @@ def log_entry(student_no, method_id, set_status=None):
 
     cur.close(); conn.close()
     return True
+
 
 def log_exit(student_no, method_id, set_status=None):
     now = datetime.now()
@@ -266,6 +274,7 @@ def log_exit(student_no, method_id, set_status=None):
     cur.close(); conn.close()
     return True
 
+
 def get_current_status(student_no):
     try:
         entry_ts, exit_ts = _get_latest_log(student_no)
@@ -277,11 +286,13 @@ def get_current_status(student_no):
         return "entered", entry_ts
     return "exited", exit_ts
 
+
 def _get_day_bounds(target_date=None):
     day = target_date or datetime.now().date()
     start = datetime.combine(day, datetime.min.time())
     end = start + timedelta(days=1)
     return start, end
+
 
 def get_daily_summary_counts(target_date=None):
     start, end = _get_day_bounds(target_date)
@@ -320,6 +331,7 @@ def get_daily_summary_counts(target_date=None):
         return in_campus, out_campus, in_campus + out_campus
     except Exception:
         return 0, 0, 0
+
 
 def get_top_program_remaining(limit=3, target_date=None):
     start, end = _get_day_bounds(target_date)

@@ -19,7 +19,9 @@ UCC_LOGO_WIDTH = 72
 UCC_LOGO_HEIGHT = 72
 LOGO_WIDTH = 88
 LOGO_HEIGHT = 88
+
 logger = logging.getLogger(__name__)
+
 
 def format_datetime(dt_string: str) -> tuple:
     try:
@@ -31,6 +33,7 @@ def format_datetime(dt_string: str) -> tuple:
         parts = dt_string.split()
         return parts[0], parts[1] if len(parts) > 1 else ""
 
+
 def find_image(image_paths: list) -> str:
     from utils import resource_path
     for path in image_paths:
@@ -41,6 +44,7 @@ def find_image(image_paths: list) -> str:
         if os.path.exists(p):
             return p
     return None
+
 
 async def send_campus_notification(guardian_email: str, student_name: str, timestamp: str, notification_type: str = "entry"):
     formatted_date, formatted_time = format_datetime(timestamp)
@@ -156,6 +160,7 @@ This is an automated notification. Please do not reply to this email.
     await smtp.send_message(msg)
     await smtp.quit()
 
+
 async def notify_parent(student_no: str, notification_type: str = "entry"):
     try:
         conn, source = get_connection("local")
@@ -188,17 +193,19 @@ async def notify_parent(student_no: str, notification_type: str = "entry"):
     except Exception as e:
         logger.warning("Email notification skipped: %s", e)
 
+
 def notify_parent_task(student_no: str, notification_type: str = "entry"):
     def runner():
         try:
             asyncio.run(notify_parent(student_no, notification_type))
         except Exception as e:
-            # Keep notifier thread failures non-fatal and avoid noisy thread tracebacks.
             logger.warning("Email notifier thread stopped with error: %s", e)
     threading.Thread(target=runner, daemon=True).start()
 
+
 def notify_entry(student_no: str):
     notify_parent_task(student_no, "entry")
+
 
 def notify_exit(student_no: str):
     notify_parent_task(student_no, "exit")
