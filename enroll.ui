@@ -220,7 +220,7 @@ QLabel#lblStatus {
            <property name="font">
             <font>
              <family>Poppins-Regular</family>
-             <pointsize>14</pointsize>
+             <pointsize>16</pointsize>
              <bold>true</bold>
             </font>
            </property>

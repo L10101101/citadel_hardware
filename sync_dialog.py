@@ -1,5 +1,4 @@
 from PyQt6.QtWidgets import (
-    QApplication,
     QDialog,
     QVBoxLayout,
     QLabel,
@@ -7,22 +6,22 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QHBoxLayout,
 )
-from PyQt6.QtCore import QTimer, Qt, QEventLoop
+from PyQt6.QtCore import QTimer, Qt
 from data_sync import DataSyncManager
 from db_utils import has_internet
 
 
 class SyncDialog(QDialog):
     _PROGRESS_STEPS = [
-        "Connecting to cloud...",
-        "Syncing schema from cloud...",
-        "Syncing reference data...",
-        "Syncing verification methods...",
-        "Syncing students...",
-        "Syncing fingerprints...",
-        "Syncing facial data...",
-        "Syncing slideshow...",
-        "Sync complete",
+        ("Connecting to cloud...", 8),
+        ("Syncing schema from cloud...", 16),
+        ("Syncing reference data...", 28),
+        ("Syncing verification methods...", 38),
+        ("Syncing students", 56),
+        ("Syncing fingerprints", 74),
+        ("Syncing facial data...", 86),
+        ("Syncing slideshow...", 94),
+        ("Sync complete", 100),
     ]
 
     def __init__(
@@ -75,7 +74,8 @@ class SyncDialog(QDialog):
         layout.addWidget(self.status_label)
 
         self.progress_bar = QProgressBar(self)
-        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
         layout.addWidget(self.progress_bar)
 
@@ -138,21 +138,25 @@ class SyncDialog(QDialog):
 
     def _progress_from_message(self, message: str) -> int:
         msg = (message or "").strip()
-        for idx, step in enumerate(self._PROGRESS_STEPS, start=1):
-            if msg.startswith(step) or step in msg:
-                return int(idx * 100 / len(self._PROGRESS_STEPS))
-        return 0
+        if not msg:
+            return 0
+        if msg.lower().startswith("sync failed"):
+            return self.progress_bar.value()
+        for step_text, progress_value in self._PROGRESS_STEPS:
+            if msg.startswith(step_text) or step_text in msg:
+                return progress_value
+        return self.progress_bar.value()
 
     def _update_ui(self, message: str, progress: int):
         self.status_label.setText(message or "Preparing...")
         if not self._sync_failed:
-            self.progress_bar.setRange(0, 0)
+            self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(max(0, min(100, int(progress))))
         if self._sync_failed:
             self.progress_bar.setStyleSheet(
                 "QProgressBar { border: 1px solid #d0d4da; border-radius: 8px; background-color: #FDE0DC; }"
                 "QProgressBar::chunk { border-radius: 8px; background-color: #F44336; }"
             )
-        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
     def handleSyncComplete(self):
         self._sync_failed = False
@@ -184,7 +188,8 @@ class SyncDialog(QDialog):
         self.retry_btn.setVisible(False)
         self.exit_btn.setVisible(False)
         self._sync_failed = False
-        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
         self.progress_bar.setStyleSheet(
             "QProgressBar { border: 1px solid #d0d4da; border-radius: 8px; background-color: #E0E0E0; }"
             "QProgressBar::chunk { border-radius: 8px; background-color: #4CAF50; }"
@@ -199,6 +204,6 @@ class SyncDialog(QDialog):
         super().showEvent(event)
         self._sync_started = True
         self._last_progress = ""
-        self._update_ui("Connecting to cloud...", 0)
+        self._update_ui("Connecting to cloud...", 8)
         self._poll_timer.start(150)
         self.sync_manager.sync_now(force_full=True, background=True)

@@ -622,7 +622,7 @@ class Ui_Citadel(object):
         self.footerLabel = QtWidgets.QLabel(parent=self.footerWidget)
         font = QtGui.QFont()
         font.setFamily("Poppins")
-        font.setPointSize(14)
+        font.setPointSize(16)
         font.setBold(True)
         self.footerLabel.setFont(font)
         self.footerLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)

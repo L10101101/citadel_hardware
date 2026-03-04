@@ -175,7 +175,7 @@ class Ui_EnrollWindow(object):
         self.footerLabel = QtWidgets.QLabel(parent=self.footerWidget)
         font = QtGui.QFont()
         font.setFamily("Poppins-Regular")
-        font.setPointSize(14)
+        font.setPointSize(16)
         font.setBold(True)
         self.footerLabel.setFont(font)
         self.footerLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)

@@ -37,6 +37,60 @@ try:
 except ImportError:
     bcrypt = None
 
+ENROLLMENT_TERMS_TEXT = (
+    "Citadel Enrollment - Terms and Conditions / Privacy Notice\n"
+    "---------------------------------------------------------\n\n"
+    "1. Scope of This Module\n"
+    "This Enrollment module is for registration and maintenance of student enrollment records "
+    "and biometric enrollment data required by Citadel.\n\n"
+    "2. Enrollment Functions\n"
+    "This module is limited to enrollment-related actions, including:\n"
+    "  - Authorized operator login for enrollment access\n"
+    "  - Student lookup and identity confirmation for enrollment\n"
+    "  - Fingerprint enrollment or update\n"
+    "  - Facial enrollment or update\n"
+    "  - Enrollment data synchronization required for enrollment readiness\n\n"
+    "3. Data Processed During Enrollment\n"
+    "The module may process the following categories of data:\n"
+    "  - Student identifiers and profile fields needed for matching\n"
+    "  - Biometric enrollment data (fingerprint templates and facial enrollment data)\n"
+    "  - Enrollment event metadata (timestamps and technical enrollment/sync events)\n\n"
+    "4. Purpose Limitation\n"
+    "Data handled here is used only for enrollment, credential maintenance, and operational "
+    "administration of enrollment records.\n\n"
+    "5. Security and Access Control\n"
+    "Enrollment access is restricted to authorized personnel. Reasonable safeguards are applied, "
+    "including authenticated access, access control, secure storage, and protected transfer.\n\n"
+    "6. Retention and Correction\n"
+    "Enrollment records are retained only as required by policy and law. Updates and corrections "
+    "may be performed by authorized users using approved procedures.\n\n"
+    "7. Legal and Regulatory Basis\n"
+    "Processing is conducted in line with applicable privacy laws and regulations, including:\n"
+    "  - Republic Act No. 10173 (Data Privacy Act of 2012)\n"
+    "  - Implementing Rules and Regulations (IRR) of RA 10173\n"
+    "  - National Privacy Commission (NPC) issuances applicable to the institution, including "
+    "requirements on breach management and reporting, and registration of processing systems where required\n\n"
+    "8. Data Subject Rights\n"
+    "Subject to legal limits, data subjects may request access, correction, and other rights provided under "
+    "RA 10173 and related regulations through official institutional channels.\n\n"
+    "9. Acknowledgment\n"
+    "By proceeding, you confirm that you understand and agree to these Enrollment Terms and "
+    "the described collection and processing of enrollment data."
+)
+
+
+def _center_dialog(dialog: QDialog, parent=None):
+    if parent is not None:
+        target_center = parent.frameGeometry().center()
+    else:
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        target_center = screen.availableGeometry().center()
+    frame = dialog.frameGeometry()
+    frame.moveCenter(target_center)
+    dialog.move(frame.topLeft())
+
 
 class TermsDialog(QDialog):
     def __init__(self, parent=None):
@@ -57,14 +111,14 @@ class TermsDialog(QDialog):
             QTextEdit {
                 border: none;
                 background-color: transparent;
-                font-size: 11px;
+                font-size: 14px;
             }
             QPushButton {
                 border-radius: 6px;
                 padding: 6px 12px;
             }
             QCheckBox {
-                font-size: 11px;
+                font-size: 13px;
                 color: #555;
             }
             #agreeBtn {
@@ -93,51 +147,7 @@ class TermsDialog(QDialog):
         from PyQt6.QtWidgets import QTextEdit
         text = QTextEdit(self)
         text.setReadOnly(True)
-        text.setPlainText(
-            "Citadel Enrollment - Terms and Conditions / Privacy Notice\n"
-            "---------------------------------------------------------\n\n"
-            "1. Purpose of Data Collection\n"
-            "All personal and biometric information collected and processed through "
-            "the Citadel Enrollment system is used solely for legitimate educational "
-            "and institutional purposes, including but not limited to:\n"
-            "  - Identity verification at campus entry and exit\n"
-            "  - Attendance, monitoring, and security reporting\n"
-            "  - Compliance with institutional policies and regulatory requirements\n\n"
-            "2. Types of Data Collected\n"
-            "The system may collect and store the following categories of data:\n"
-            "  - Basic student and guardian details (e.g., name, ID number, contact information, program)\n"
-            "  - Enrollment and verification data (e.g., QR codes, fingerprint templates, facial recognition data)\n"
-            "  - System and usage logs (e.g., entry/exit timestamps, device and system events)\n\n"
-            "3. Legal Basis and Data Privacy\n"
-            "The collection and processing of data are carried out in accordance with "
-            "the Data Privacy Act of 2012 (Republic Act No. 10173) and its Implementing "
-            "Rules and Regulations, as well as other applicable data protection and "
-            "digital information laws and guidelines. Data subjects have the right to "
-            "be informed, to access, to object, to request correction, and to request "
-            "erasure or blocking of personal data, subject to lawful limitations.\n\n"
-            "4. Security and Encryption\n"
-            "Appropriate technical and organizational measures are implemented to protect "
-            "personal and biometric data against unauthorized access, alteration, disclosure, "
-            "or destruction. These measures include, where applicable:\n"
-            "  - Encryption of data in transit and at rest\n"
-            "  - Secure authentication and access controls\n"
-            "  - Segregation of duties and least-privilege access\n"
-            "  - Regular backups and system monitoring\n\n"
-            "5. Data Sharing and Retention\n"
-            "Data collected by Citadel is used only within the University and its authorized "
-            "service providers for the purposes stated above. Data will be retained only for "
-            "as long as necessary to fulfill those purposes, comply with legal obligations, "
-            "or protect the rights and interests of the University and its stakeholders.\n\n"
-            "6. User Responsibilities\n"
-            "By signing in and using this system, you agree to:\n"
-            "  - Use your credentials responsibly and keep your password confidential\n"
-            "  - Access only information and functions that you are authorized to use\n"
-            "  - Immediately report any suspected unauthorized access, data breach, or misuse\n\n"
-            "7. Contact and Inquiries\n"
-            "For concerns or inquiries regarding your personal data, you may contact the "
-            "University's Data Protection Officer or the Registrar's Office through the official channels.\n\n"
-            "By proceeding, you acknowledge that you have read, understood, and agree to these terms."
-        )
+        text.setPlainText(ENROLLMENT_TERMS_TEXT)
         text.verticalScrollBar().valueChanged.connect(self._on_terms_scrolled)
         self._terms_text = text
         layout.addWidget(text)
@@ -160,7 +170,8 @@ class TermsDialog(QDialog):
         btn_row.addWidget(self.agree_btn)
         layout.addLayout(btn_row)
 
-        self.resize(720, 520)
+        self.resize(900, 560)
+        _center_dialog(self, parent)
 
     def _on_terms_scrolled(self):
         if not hasattr(self, '_terms_text'):
@@ -383,7 +394,8 @@ class LoginDialog(QDialog):
             Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint
         )
         dlg.setModal(True)
-        dlg.resize(640, 480)
+        dlg.resize(900, 560)
+        _center_dialog(dlg, self)
         dlg.setObjectName("termsDialog")
         dlg.setStyleSheet(
             """
@@ -394,7 +406,7 @@ class LoginDialog(QDialog):
             QTextEdit {
                 border: none;
                 background-color: transparent;
-                font-size: 11px;
+                font-size: 14px;
             }
             QPushButton {
                 border-radius: 6px;
@@ -428,52 +440,7 @@ class LoginDialog(QDialog):
 
         text = QTextEdit(dlg)
         text.setReadOnly(True)
-        text.setPlainText(
-            "Citadel Enrollment - Terms and Conditions / Privacy Notice\n"
-            "---------------------------------------------------------\n\n"
-            "1. Purpose of Data Collection\n"
-            "All personal and biometric information collected and processed through "
-            "the Citadel Enrollment system is used solely for legitimate educational "
-            "and institutional purposes, including but not limited to:\n"
-            "  - Identity verification at campus entry and exit\n"
-            "  - Attendance, monitoring, and security reporting\n"
-            "  - Compliance with institutional policies and regulatory requirements\n\n"
-            "2. Types of Data Collected\n"
-            "The system may collect and store the following categories of data:\n"
-            "  - Basic student and guardian details (e.g., name, ID number, contact information, program)\n"
-            "  - Enrollment and verification data (e.g., QR codes, fingerprint templates, facial recognition data)\n"
-            "  - System and usage logs (e.g., entry/exit timestamps, device and system events)\n\n"
-            "3. Legal Basis and Data Privacy\n"
-            "The collection and processing of data are carried out in accordance with "
-            "the Data Privacy Act of 2012 (Republic Act No. 10173) and its Implementing "
-            "Rules and Regulations, as well as other applicable data protection and "
-            "digital information laws and guidelines. Data subjects have the right to "
-            "be informed, to access, to object, to request correction, and to request "
-            "erasure or blocking of personal data, subject to lawful limitations.\n\n"
-            "4. Security and Encryption\n"
-            "Appropriate technical and organizational measures are implemented to protect "
-            "personal and biometric data against unauthorized access, alteration, disclosure, "
-            "or destruction. These measures include, where applicable:\n"
-            "  - Encryption of data in transit and at rest\n"
-            "  - Secure authentication and access controls\n"
-            "  - Segregation of duties and least-privilege access\n"
-            "  - Regular backups and system monitoring\n\n"
-            "5. Data Sharing and Retention\n"
-            "Data collected by Citadel is used only within the University and its authorized "
-            "service providers for the purposes stated above. Data will be retained only for "
-            "as long as necessary to fulfill those purposes, comply with legal obligations, "
-            "or protect the rights and interests of the University and its stakeholders.\n\n"
-            "6. User Responsibilities\n"
-            "By signing in and using this system, you agree to:\n"
-            "  - Use your credentials responsibly and keep your password confidential\n"
-            "  - Access only information and functions that you are authorized to use\n"
-            "  - Immediately report any suspected unauthorized access, data breach, or misuse\n\n"
-            "7. Contact and Inquiries\n"
-            "For concerns or inquiries regarding your personal data, you may contact the "
-            "University's Data Protection Officer or the Registrar's Office through the official channels.\n\n"
-            "By proceeding to log in, you acknowledge that you have read, understood, and "
-            "agree to these terms and conditions and the described data privacy practices."
-        )
+        text.setPlainText(ENROLLMENT_TERMS_TEXT)
 
         vbox.addWidget(text)
         btn_row = QHBoxLayout()
@@ -749,6 +716,20 @@ class EnrollWindow(QMainWindow, Ui_EnrollWindow, BaseEnrollmentHandler):
             event.ignore()
 
 
+def _startup_settings():
+    return QSettings("Citadel", "Enroll")
+
+
+def _should_show_startup_terms() -> bool:
+    settings = _startup_settings()
+    return not settings.value("startup_terms_accepted", False, type=bool)
+
+
+def _mark_startup_terms_accepted():
+    settings = _startup_settings()
+    settings.setValue("startup_terms_accepted", True)
+
+
 def main():
     configure_logging("citadel-enroll")
     app = QApplication(sys.argv)
@@ -770,9 +751,11 @@ def main():
         )
         sys.exit(1)
 
-    terms = TermsDialog()
-    if terms.exec() != QDialog.DialogCode.Accepted:
-        sys.exit(0)
+    if _should_show_startup_terms():
+        terms = TermsDialog()
+        if terms.exec() != QDialog.DialogCode.Accepted:
+            sys.exit(0)
+        _mark_startup_terms_accepted()
 
     login = LoginDialog()
     if login.exec() != QDialog.DialogCode.Accepted:

@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 
 from PyQt6 import QtCore
 from PyQt6.QtCore import QTimer, QDateTime, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QPixmap, QPainterPath, QRegion
+from PyQt6.QtGui import QPixmap, QPainterPath, QRegion, QPainter
 from main_ui import Ui_Citadel
 from emergency_mode import EmergencyModeController
 from finger_thread import FingerprintThread
@@ -157,9 +157,12 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.verification_handler.on_face_timeout
         )
         self.device_status_timer = QTimer()
-        self.device_status_timer.setInterval(5000)
+        self.device_status_timer.setInterval(180000)
         self.device_status_timer.timeout.connect(self._poll_device_status)
         self.device_status_timer.start()
+        self._last_camera_probe_at = 0.0
+        self._camera_probe_interval_sec = 180.0
+        self._slideshow_vertical_padding_px = 20
         QTimer.singleShot(300, self._poll_device_status)
 
         self.connection_monitor = ConnectionMonitor(self)
@@ -226,10 +229,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
             for backend in backends:
                 cap = cv2.VideoCapture(0, backend)
                 try:
-                    if not cap.isOpened():
-                        continue
-                    ok, _ = cap.read()
-                    if ok:
+                    if cap.isOpened():
                         return True
                 finally:
                     try:
@@ -311,8 +311,17 @@ class MainWindow(QMainWindow, Ui_Citadel):
             and self.camera_handler.camera_thread
             and self.camera_handler.camera_thread.isRunning()
         )
-        if not camera_running:
-            self._camera_available = self._probe_camera_available()
+        if camera_running:
+            self._camera_available = True
+        else:
+            now = time.monotonic()
+            should_probe = (
+                not self._camera_available
+                or (now - self._last_camera_probe_at) >= self._camera_probe_interval_sec
+            )
+            if should_probe:
+                self._camera_available = self._probe_camera_available()
+                self._last_camera_probe_at = now
         self._apply_missing_device_message()
 
     def _on_fingerprint_device_availability_changed(self, available: bool):
@@ -322,6 +331,81 @@ class MainWindow(QMainWindow, Ui_Citadel):
     def on_camera_device_availability_changed(self, available: bool):
         self._camera_available = bool(available)
         self._apply_missing_device_message()
+
+    def _decode_slideshow_pixmaps(self, images):
+        decoded = []
+        for data in images:
+            if not data:
+                continue
+            pixmap = QPixmap()
+            if pixmap.loadFromData(data):
+                decoded.append(pixmap)
+        return decoded
+
+    def _refresh_slideshow_mask(self, size):
+        if not hasattr(self, "slideshowLabel"):
+            return
+        w = max(1, size.width())
+        h = max(1, size.height())
+        size_key = (w, h)
+        if getattr(self, "_slideshow_mask_size_key", None) == size_key:
+            return
+        radius = 20
+        rect = QtCore.QRectF(0, 0, w, h)
+        path = QPainterPath()
+        path.addRoundedRect(rect, radius, radius)
+        self.slideshowLabel.setMask(QRegion(path.toFillPolygon().toPolygon()))
+        self._slideshow_mask_size_key = size_key
+
+    def _next_slideshow_source_pixmap(self):
+        if not self._slideshow_images:
+            return None
+        self._slideshow_index = (self._slideshow_index + 1) % len(self._slideshow_images)
+        return self._slideshow_images[self._slideshow_index]
+
+    def _apply_scaled_slideshow_pixmap(self, source_pixmap: QPixmap):
+        if source_pixmap is None or source_pixmap.isNull():
+            return
+        if not hasattr(self, "displayWidget"):
+            return
+        size = self.displayWidget.size()
+        if size.width() <= 0 or size.height() <= 0:
+            return
+        self._refresh_slideshow_mask(size)
+        target_w = size.width()
+        target_h = size.height()
+        padding = max(
+            0,
+            int(
+                getattr(
+                    self,
+                    "_slideshow_vertical_padding_px",
+                    getattr(self, "_slideshow_vertical_bleed_px", 20),
+                )
+            ),
+        )
+        drawable_h = max(1, target_h - (padding * 2))
+        scaled = source_pixmap.scaled(
+            target_w,
+            drawable_h,
+            QtCore.Qt.AspectRatioMode.IgnoreAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
+        )
+        frame = QPixmap(target_w, target_h)
+        frame.fill(QtCore.Qt.GlobalColor.transparent)
+        x = 0
+        y = padding
+        painter = QPainter(frame)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter.drawPixmap(x, y, scaled)
+        painter.end()
+        self.slideshowLabel.setPixmap(frame)
+
+    def _refresh_current_slideshow_pixmap(self):
+        source = getattr(self, "_slideshow_current_source_pixmap", None)
+        if source is None or source.isNull():
+            return
+        self._apply_scaled_slideshow_pixmap(source)
 
     def _fix_resource_paths(self):
         for label, rel_path in (
@@ -343,16 +427,18 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
     def _init_slideshow(self):
         cfg = get_slideshow_config()
-        self._slideshow_images = get_slideshow_images_local()
+        raw_images = get_slideshow_images_local()
+        self._slideshow_images = self._decode_slideshow_pixmaps(raw_images)
         self._slideshow_interval_ms = max(2000, int(cfg.get("interval", 5)) * 1000)
         self._slideshow_index = -1
         self._slideshow_active = False
-        self._slideshow_current_data = None
+        self._slideshow_current_source_pixmap = None
+        self._slideshow_mask_size_key = None
 
         self.slideshowLabel = QLabel(parent=self.displayWidget)
         self.slideshowLabel.setObjectName("slideshowLabel")
         self.slideshowLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.slideshowLabel.setScaledContents(True)
+        self.slideshowLabel.setScaledContents(False)
         self.slideshowLabel.setVisible(False)
         self.displayLayout.addWidget(self.slideshowLabel, 0, 0, 1, 1)
 
@@ -435,64 +521,23 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._focus_hidden_input()
 
     def _next_slideshow_image(self):
-        if not self._slideshow_images:
+        source_pixmap = self._next_slideshow_source_pixmap()
+        if source_pixmap is None:
             return
-        next_data = self._find_next_slideshow_data()
-        if not next_data:
-            return
-        self._slideshow_current_data = next_data
-        pixmap = QPixmap()
-        if not pixmap.loadFromData(next_data):
-            return
+        self._slideshow_current_source_pixmap = source_pixmap
         if self._slideshow_active:
-            self._fade_to_slideshow_pixmap(pixmap)
+            self._fade_to_slideshow_pixmap(source_pixmap)
         else:
-            self._apply_slideshow_pixmap(pixmap)
+            self._apply_scaled_slideshow_pixmap(source_pixmap)
 
-    def _apply_slideshow_pixmap(self, pixmap: QPixmap):
-        if not hasattr(self, "displayWidget"):
-            return
-        size = self.displayWidget.size()
-        if size.width() <= 0 or size.height() <= 0:
-            return
-        self._apply_slideshow_mask(size)
-        scaled = pixmap.scaled(
-            size,
-            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
-            QtCore.Qt.TransformationMode.SmoothTransformation,
-        )
-        self.slideshowLabel.setPixmap(scaled)
-
-    def _apply_slideshow_mask(self, size):
-        if not hasattr(self, "slideshowLabel"):
-            return
-        radius = 20
-        rect = QtCore.QRectF(0, 0, max(1, size.width()), max(1, size.height()))
-        path = QPainterPath()
-        path.addRoundedRect(rect, radius, radius)
-        region = QRegion(path.toFillPolygon().toPolygon())
-        self.slideshowLabel.setMask(region)
-
-    def _find_next_slideshow_data(self):
-        attempts = 0
-        while attempts < len(self._slideshow_images):
-            self._slideshow_index = (self._slideshow_index + 1) % len(self._slideshow_images)
-            data = self._slideshow_images[self._slideshow_index]
-            if data:
-                pixmap = QPixmap()
-                if pixmap.loadFromData(data):
-                    return data
-            attempts += 1
-        return None
-    
-    def _fade_to_slideshow_pixmap(self, pixmap: QPixmap):
-        if pixmap.isNull():
+    def _fade_to_slideshow_pixmap(self, source_pixmap: QPixmap):
+        if source_pixmap is None or source_pixmap.isNull():
             return
         self._slideshow_fade_out.stop()
         self._slideshow_fade_in.stop()
 
         def _after_fade_out():
-            self._apply_slideshow_pixmap(pixmap)
+            self._apply_scaled_slideshow_pixmap(source_pixmap)
             self._slideshow_fade_in.start()
 
         try:
@@ -968,12 +1013,10 @@ class MainWindow(QMainWindow, Ui_Citadel):
             mode = getattr(self, "_verification_icon_mode", None)
             if mode in ("qr_face", "qr_fingerprint", "qr_only"):
                 self._set_spacer_verification_icon(mode)
-        if getattr(self, "_slideshow_active", False) and self._slideshow_current_data:
-            pixmap = QPixmap()
-            if pixmap.loadFromData(self._slideshow_current_data):
-                self._apply_slideshow_pixmap(pixmap)
+        if getattr(self, "_slideshow_active", False) and getattr(self, "_slideshow_current_source_pixmap", None):
+            self._refresh_current_slideshow_pixmap()
         elif hasattr(self, "displayWidget"):
-            self._apply_slideshow_mask(self.displayWidget.size())
+            self._refresh_slideshow_mask(self.displayWidget.size())
 
     def closeEvent(self, event):
         confirm = QMessageBox(self)

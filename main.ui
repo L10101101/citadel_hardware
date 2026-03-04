@@ -1088,7 +1088,7 @@ QToolBar QToolButton:checked {
            <property name="font">
             <font>
              <family>Poppins</family>
-             <pointsize>14</pointsize>
+             <pointsize>16</pointsize>
              <bold>true</bold>
             </font>
            </property>
