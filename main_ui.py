@@ -15,7 +15,7 @@ class Ui_Citadel(object):
         Citadel.resize(1280, 720)
         Citadel.setMinimumSize(QtCore.QSize(520, 320))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/icons/assets/UCC_Logo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap("gui/assets/logo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         Citadel.setWindowIcon(icon)
         Citadel.setAutoFillBackground(False)
         Citadel.setStyleSheet("* {\n"

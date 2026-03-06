@@ -15,7 +15,7 @@ class Ui_EnrollWindow(object):
         EnrollWindow.resize(1282, 720)
         EnrollWindow.setMinimumSize(QtCore.QSize(0, 0))
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/icons/assets/UCC_Logo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap(":/icons/assets/logo-enroll.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         EnrollWindow.setWindowIcon(icon)
         EnrollWindow.setStyleSheet("* {\n"
 "    font-family: \'Poppins-Regular\', sans-serif;\n"

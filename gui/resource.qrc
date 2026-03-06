@@ -13,6 +13,7 @@
         <file>assets/UCC_Logo.ico</file>
         <file>assets/user.png</file>
         <file>assets/view.png</file>
+        <file>assets/logo-enroll.png</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>fonts/Poppins-Black.ttf</file>

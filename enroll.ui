@@ -20,8 +20,8 @@
    <string>Enroll</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/icons/assets/UCC_Logo.png</normaloff>:/icons/assets/UCC_Logo.png</iconset>
+   <iconset resource="gui/resource.qrc">
+    <normaloff>:/icons/assets/logo-enroll.png</normaloff>:/icons/assets/logo-enroll.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">* {

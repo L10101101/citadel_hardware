@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>:/icons/assets/UCC_Logo.png</normaloff>:/icons/assets/UCC_Logo.png</iconset>
+    <normaloff>gui/assets/logo.png</normaloff>gui/assets/logo.png</iconset>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
