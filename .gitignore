@@ -17,3 +17,4 @@
 /docs
 .dockerignore
 kernel.errors.txt
+/mobile_sms_app

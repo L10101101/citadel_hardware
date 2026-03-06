@@ -7,7 +7,7 @@ Optional secret overrides (used before keyring values):
 - `CITADEL_LOCAL_DB_PASSWORD`
 - `CITADEL_CLOUD_DB_PASSWORD`
 - `CITADEL_SMTP_PASSWORD`
-- `CITADEL_TWILIO_AUTH_TOKEN`
+- `CITADEL_SMS_APP_API_KEY`
 - `CITADEL_FERNET_KEY`
 
 Face/recognition tuning:
@@ -95,3 +95,4 @@ Current coverage includes:
    - deploy previous desktop build
    - keep database unchanged
 5. Re-run smoke flow and tests after rollback.
+

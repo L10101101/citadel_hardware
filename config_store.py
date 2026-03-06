@@ -11,14 +11,14 @@ CONFIG_FILENAME = "config.enc"
 KEY_LOCAL_DB_PASSWORD = "local_db_password"
 KEY_CLOUD_DB_PASSWORD = "cloud_db_password"
 KEY_SMTP_PASSWORD = "smtp_password"
-KEY_TWILIO_AUTH_TOKEN = "twilio_auth_token"
+KEY_SMS_APP_API_KEY = "sms_app_api_key"
 KEY_CRYPT_FERNET = "crypt_fernet_key"
 
 ENV_SECRET_MAP = {
     KEY_LOCAL_DB_PASSWORD: "CITADEL_LOCAL_DB_PASSWORD",
     KEY_CLOUD_DB_PASSWORD: "CITADEL_CLOUD_DB_PASSWORD",
     KEY_SMTP_PASSWORD: "CITADEL_SMTP_PASSWORD",
-    KEY_TWILIO_AUTH_TOKEN: "CITADEL_TWILIO_AUTH_TOKEN",
+    KEY_SMS_APP_API_KEY: "CITADEL_SMS_APP_API_KEY",
     KEY_CRYPT_FERNET: "CITADEL_FERNET_KEY",
 }
 
@@ -270,15 +270,26 @@ def get_smtp_config() -> dict:
         "tls": smtp.get("tls", True),
     }
 
-def get_twilio_config() -> dict:
+def get_sms_app_config() -> dict:
     config = _get_encrypted_config() or {}
-    twilio = config.get("twilio", {})
-    auth_token = _get_secret(KEY_TWILIO_AUTH_TOKEN) or ""
+    sms_app = config.get("sms_app", {})
+    api_key = _get_secret(KEY_SMS_APP_API_KEY) or ""
     return {
-        "account_sid": twilio.get("account_sid", ""),
-        "auth_token": auth_token,
-        "phone_number": twilio.get("phone_number", ""),
-        "messaging_sid": twilio.get("messaging_sid", ""),
+        "endpoint_url": sms_app.get("endpoint_url", ""),
+        "api_key": api_key,
+        "sender_id": sms_app.get("sender_id", ""),
+        "timeout_sec": sms_app.get("timeout_sec", 10),
+    }
+
+
+def get_twilio_config() -> dict:
+    # Backward-compatible alias for older call sites.
+    sms_app = get_sms_app_config()
+    return {
+        "account_sid": sms_app.get("endpoint_url", ""),
+        "auth_token": sms_app.get("api_key", ""),
+        "phone_number": sms_app.get("sender_id", ""),
+        "messaging_sid": "",
     }
 
 def get_fernet_key() -> str | None:
@@ -343,8 +354,8 @@ def save_config(
     cloud_db_password: str,
     smtp: dict,
     smtp_password: str,
-    twilio: dict,
-    twilio_auth_token: str,
+    sms_app: dict,
+    sms_app_api_key: str,
     fernet_key: str | None = None,
     sync: dict | None = None,
     slideshow: dict | None = None,
@@ -385,10 +396,10 @@ def save_config(
             "user": smtp.get("user", ""),
             "tls": bool(smtp.get("tls", True)),
         },
-        "twilio": {
-            "account_sid": twilio.get("account_sid", ""),
-            "phone_number": twilio.get("phone_number", ""),
-            "messaging_sid": twilio.get("messaging_sid", ""),
+        "sms_app": {
+            "endpoint_url": sms_app.get("endpoint_url", ""),
+            "sender_id": sms_app.get("sender_id", ""),
+            "timeout_sec": int(sms_app.get("timeout_sec", 10)),
         },
         "sync": sync if sync is not None else existing.get("sync", DEFAULT_SYNC_CONFIG),
         "slideshow": slideshow if slideshow is not None else existing.get("slideshow", DEFAULT_SLIDESHOW_CONFIG),
@@ -401,7 +412,7 @@ def save_config(
         return False
     if not _set_secret(KEY_SMTP_PASSWORD, smtp_password or ""):
         return False
-    if not _set_secret(KEY_TWILIO_AUTH_TOKEN, twilio_auth_token or ""):
+    if not _set_secret(KEY_SMS_APP_API_KEY, sms_app_api_key or ""):
         return False
 
     if fernet_key:

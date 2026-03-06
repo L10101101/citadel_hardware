@@ -43,7 +43,7 @@ from config_store import (
     get_local_db,
     get_cloud_db,
     get_smtp_config,
-    get_twilio_config,
+    get_sms_app_config,
     get_fernet_key,
     get_sync_config,
     get_slideshow_config,
@@ -64,7 +64,7 @@ class WelcomePage(QWizardPage):
             "• Local database connection (PostgreSQL)\n"
             "• Cloud database connection (PostgreSQL)\n"
             "• SMTP settings for email notifications\n"
-            "• Twilio settings for SMS notifications\n"
+            "• SMS app settings for guardian notifications\n"
             "• Fernet key for face/fingerprint encryption (or auto-generate)\n\n"
             "Sensitive values (passwords, tokens) are stored in your system's credential store.\n"
             "Other settings are stored in an encrypted configuration file."
@@ -267,34 +267,35 @@ class SmtpPage(QWizardPage):
             and self.password.text().strip()
         )
 
-class TwilioPage(QWizardPage):
+class SmsAppPage(QWizardPage):
     def __init__(self):
         super().__init__()
-        self.setTitle("SMS (Twilio)")
-        self.setSubTitle("Configure Twilio for SMS notifications to guardians.")
+        self.setTitle("SMS App")
+        self.setSubTitle("Configure your SMS app API for guardian notifications.")
         layout = QFormLayout(self)
 
-        self.account_sid = QLineEdit()
-        self.account_sid.setPlaceholderText("ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-        layout.addRow("Account SID:", self.account_sid)
+        self.endpoint_url = QLineEdit()
+        self.endpoint_url.setPlaceholderText("e.g. https://sms.example.com/send")
+        layout.addRow("Endpoint URL:", self.endpoint_url)
 
-        self.auth_token = QLineEdit()
-        self.auth_token.setEchoMode(QLineEdit.EchoMode.Password)
-        self.auth_token.setPlaceholderText("Auth token")
-        layout.addRow("Auth token:", self.auth_token)
+        self.api_key = QLineEdit()
+        self.api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.api_key.setPlaceholderText("API key")
+        layout.addRow("API key:", self.api_key)
 
-        self.phone_number = QLineEdit()
-        self.phone_number.setPlaceholderText("e.g. +1234567890")
-        layout.addRow("Twilio phone number:", self.phone_number)
+        self.sender_id = QLineEdit()
+        self.sender_id.setPlaceholderText("e.g. CITADEL")
+        layout.addRow("Sender ID (optional):", self.sender_id)
 
-        self.messaging_sid = QLineEdit()
-        self.messaging_sid.setPlaceholderText("Messaging Service SID (MG...)")
-        layout.addRow("Messaging Service SID:", self.messaging_sid)
+        self.timeout_sec = QSpinBox()
+        self.timeout_sec.setRange(2, 60)
+        self.timeout_sec.setValue(10)
+        layout.addRow("Request timeout (sec):", self.timeout_sec)
 
-        self.registerField("twilio_account_sid", self.account_sid)
-        self.registerField("twilio_auth_token", self.auth_token)
-        self.registerField("twilio_phone", self.phone_number)
-        self.registerField("twilio_messaging_sid", self.messaging_sid)
+        self.registerField("sms_endpoint_url", self.endpoint_url)
+        self.registerField("sms_api_key", self.api_key)
+        self.registerField("sms_sender_id", self.sender_id)
+        self.registerField("sms_timeout_sec", self.timeout_sec)
 
 class FernetKeyPage(QWizardPage):
     def __init__(self):
@@ -379,7 +380,7 @@ class SettingsDialog(QDialog):
         self._local_existing = get_local_db()
         self._cloud_existing = get_cloud_db()
         self._smtp_existing = get_smtp_config()
-        self._twilio_existing = get_twilio_config()
+        self._sms_app_existing = get_sms_app_config()
         self._fernet_existing = get_fernet_key()
         self._sync_existing = get_sync_config()
         self._slideshow_existing = get_slideshow_config()
@@ -394,7 +395,7 @@ class SettingsDialog(QDialog):
         self._build_cloud_tab()
         self._build_cloud_ssl_tab()
         self._build_smtp_tab()
-        self._build_twilio_tab()
+        self._build_sms_app_tab()
         self._build_fernet_tab()
         self._build_sync_tab()
         if self._show_app_tab:
@@ -530,26 +531,27 @@ class SettingsDialog(QDialog):
         self.smtp_user.setText(self._smtp_existing.get("user", ""))
         self.smtp_tls.setChecked(bool(self._smtp_existing.get("tls", True)))
 
-    def _build_twilio_tab(self):
+    def _build_sms_app_tab(self):
         tab = QGroupBox()
         form = QFormLayout(tab)
-        self.twilio_account_sid = QLineEdit()
-        self.twilio_auth_token = QLineEdit()
-        self.twilio_auth_token.setEchoMode(QLineEdit.EchoMode.Password)
-        self.twilio_auth_token.setPlaceholderText("Leave blank to keep existing")
-        self.twilio_phone = QLineEdit()
-        self.twilio_messaging_sid = QLineEdit()
+        self.sms_endpoint_url = QLineEdit()
+        self.sms_api_key = QLineEdit()
+        self.sms_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.sms_api_key.setPlaceholderText("Leave blank to keep existing")
+        self.sms_sender_id = QLineEdit()
+        self.sms_timeout_sec = QSpinBox()
+        self.sms_timeout_sec.setRange(2, 60)
 
-        form.addRow("Account SID:", self.twilio_account_sid)
-        form.addRow("Auth token:", self.twilio_auth_token)
-        form.addRow("Twilio phone number:", self.twilio_phone)
-        form.addRow("Messaging Service SID:", self.twilio_messaging_sid)
+        form.addRow("Endpoint URL:", self.sms_endpoint_url)
+        form.addRow("API key:", self.sms_api_key)
+        form.addRow("Sender ID (optional):", self.sms_sender_id)
+        form.addRow("Request timeout (sec):", self.sms_timeout_sec)
 
-        self.tabs.addTab(tab, "SMS (Twilio)")
+        self.tabs.addTab(tab, "SMS App")
 
-        self.twilio_account_sid.setText(self._twilio_existing.get("account_sid", ""))
-        self.twilio_phone.setText(self._twilio_existing.get("phone_number", ""))
-        self.twilio_messaging_sid.setText(self._twilio_existing.get("messaging_sid", ""))
+        self.sms_endpoint_url.setText(self._sms_app_existing.get("endpoint_url", ""))
+        self.sms_sender_id.setText(self._sms_app_existing.get("sender_id", ""))
+        self.sms_timeout_sec.setValue(int(self._sms_app_existing.get("timeout_sec", 10) or 10))
 
     def _build_fernet_tab(self):
         tab = QGroupBox()
@@ -951,7 +953,7 @@ class SettingsDialog(QDialog):
         local_password = self.local_password.text().strip() or (self._local_existing.get("password") or "")
         cloud_password = self.cloud_password.text().strip() or (self._cloud_existing.get("password") or "")
         smtp_password = self.smtp_password.text().strip() or (self._smtp_existing.get("password") or "")
-        twilio_auth = self.twilio_auth_token.text().strip() or (self._twilio_existing.get("auth_token") or "")
+        sms_api_key = self.sms_api_key.text().strip() or (self._sms_app_existing.get("api_key") or "")
 
         if not is_configured():
             if not local_password:
@@ -1041,10 +1043,10 @@ class SettingsDialog(QDialog):
             "user": self.smtp_user.text().strip(),
             "tls": self.smtp_tls.isChecked(),
         }
-        twilio = {
-            "account_sid": self.twilio_account_sid.text().strip(),
-            "phone_number": self.twilio_phone.text().strip(),
-            "messaging_sid": self.twilio_messaging_sid.text().strip(),
+        sms_app = {
+            "endpoint_url": self.sms_endpoint_url.text().strip(),
+            "sender_id": self.sms_sender_id.text().strip(),
+            "timeout_sec": int(self.sms_timeout_sec.value()),
         }
 
         ok = save_config(
@@ -1054,8 +1056,8 @@ class SettingsDialog(QDialog):
             cloud_db_password=cloud_password,
             smtp=smtp,
             smtp_password=smtp_password,
-            twilio=twilio,
-            twilio_auth_token=twilio_auth,
+            sms_app=sms_app,
+            sms_app_api_key=sms_api_key,
             fernet_key=fernet_key,
             sync=sync_cfg,
             slideshow=slideshow_cfg,
@@ -1102,3 +1104,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     run_setup_wizard()
     sys.exit(0)
+
