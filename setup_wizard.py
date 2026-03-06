@@ -845,17 +845,26 @@ class SettingsDialog(QDialog):
             return
         cur = conn.cursor()
         try:
+            cur.execute("SELECT COALESCE(MAX(id), 0) FROM slideshow")
+            start_id = int((cur.fetchone() or [0])[0] or 0)
             payload = []
-            for path in paths:
+            for idx, path in enumerate(paths, start=1):
                 try:
                     with open(path, "rb") as f:
-                        payload.append((Binary(f.read()),))
+                        payload.append((start_id + idx, Binary(f.read())))
                 except Exception:
                     continue
             if not payload:
                 QMessageBox.information(self, "Slideshow", "No valid images were selected.")
                 return
-            cur.executemany("INSERT INTO slideshow (image) VALUES (%s)", payload)
+            cur.executemany(
+                """
+                INSERT INTO slideshow (id, image)
+                VALUES (%s, %s)
+                ON CONFLICT (id) DO UPDATE SET image = EXCLUDED.image
+                """,
+                payload,
+            )
             QMessageBox.information(self, "Slideshow", "Images uploaded to cloud.")
         except Exception as e:
             QMessageBox.warning(self, "Slideshow", f"Failed to upload images: {e}")

@@ -3,6 +3,10 @@ import numpy as np
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+CAPTURE_WIDTH = 3840
+CAPTURE_HEIGHT = 2160
+CAPTURE_FPS = 12
+
 
 class CameraThread(QThread):
     frameCaptured = pyqtSignal(np.ndarray)
@@ -23,9 +27,9 @@ class CameraThread(QThread):
     def run(self):
         cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
         self._emit_device_availability(cap.isOpened())
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
-        cap.set(cv2.CAP_PROP_FPS, 30)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAPTURE_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAPTURE_HEIGHT)
+        cap.set(cv2.CAP_PROP_FPS, CAPTURE_FPS)
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
         try:
             cap.set(cv2.CAP_PROP_AUTO_WB, 1)
@@ -53,3 +57,4 @@ class CameraThread(QThread):
     def stop(self):
         self._stop_thread = True
         self.wait()
+

@@ -18,7 +18,7 @@ STILL_DURATION = 2.0
 CAMERA_INDEX = 0
 CAMERA_WIDTH = 3840
 CAMERA_HEIGHT = 2160
-FPS = 30
+FPS = 12
 
 MIN_FACE_SIZE = 120
 MIN_BRIGHTNESS = 45.0
@@ -57,6 +57,7 @@ def open_camera():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, FPS)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     try:
         cap.set(cv2.CAP_PROP_AUTO_WB, 1)
     except Exception:
@@ -221,3 +222,4 @@ def save_to_db(student_no, emb):
     else:
         logger.warning("Student not found in local DB while saving face embedding: %s", student_no)
         raise ValueError(f"{student_no} Not Found")
+

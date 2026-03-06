@@ -17,6 +17,11 @@ class VerificationHandler:
     def __init__(self, main_window):
         self.main = main_window
 
+    def _enable_qr_input(self):
+        self.main.hiddenInput.setEnabled(True)
+        if hasattr(self.main, "_focus_hidden_input"):
+            self.main._focus_hidden_input()
+
     def _schedule_reset_info(self):
         self.main.schedule_reset_info(7000)
     
@@ -58,14 +63,14 @@ class VerificationHandler:
             self.main.camera_handler.clear_camera_feed()
             self._schedule_reset_info()
             self.main.verification_active = False
-            self.main.hiddenInput.setEnabled(True)
+            self._enable_qr_input()
             return
 
         action = self._get_action(student_no)
         if action == "error":
             status_cloud_unavailable(self.main.set_status)
             self.main.verification_active = False
-            self.main.hiddenInput.setEnabled(True)
+            self._enable_qr_input()
             return
 
         if action == "exit":
@@ -99,7 +104,7 @@ class VerificationHandler:
             else:
                 self._schedule_reset_info()
         self.main.verification_active = False
-        self.main.hiddenInput.setEnabled(True)
+        self._enable_qr_input()
 
     def on_qr_input_received(self, qr_value):
         if getattr(self.main, "emergency_mode", None) and self.main.emergency_mode.active:
@@ -161,7 +166,7 @@ class VerificationHandler:
             else:
                 self._schedule_reset_info()
             self.main.verification_active = False
-            self.main.hiddenInput.setEnabled(True)
+            self._enable_qr_input()
             return
 
         if not can_attempt_entry(qr_value, set_status=self.main.set_status):
@@ -199,4 +204,4 @@ class VerificationHandler:
         status_unrecognized(self.main.set_status)
         self.main._reset_slideshow_timer()
         self._schedule_reset_info()
-        self.main.hiddenInput.setEnabled(True)
+        self._enable_qr_input()

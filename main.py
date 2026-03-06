@@ -156,14 +156,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.face_timeout_timer.timeout.connect(
             self.verification_handler.on_face_timeout
         )
-        self.device_status_timer = QTimer()
-        self.device_status_timer.setInterval(180000)
-        self.device_status_timer.timeout.connect(self._poll_device_status)
-        self.device_status_timer.start()
-        self._last_camera_probe_at = 0.0
-        self._camera_probe_interval_sec = 180.0
         self._slideshow_vertical_padding_px = 20
-        QTimer.singleShot(300, self._poll_device_status)
+        QTimer.singleShot(300, self._apply_missing_device_message)
 
         self.connection_monitor = ConnectionMonitor(self)
         self.sync_manager = sync_manager
@@ -262,14 +256,24 @@ class MainWindow(QMainWindow, Ui_Citadel):
         if self._fingerprint_available:
             return True
         if show_status:
-            self.set_status("Missing device(s): Fingerprint Sensor", "#FF6666")
+            self.set_status("Missing device: Fingerprint Sensor", "#FF6666")
         return False
 
     def ensure_qr_ready(self, show_status: bool = False) -> bool:
+        camera_running = bool(
+            self.camera_handler
+            and self.camera_handler.camera_thread
+            and self.camera_handler.camera_thread.isRunning()
+        )
+        if camera_running:
+            self._camera_available = True
+        else:
+            self._camera_available = self._probe_camera_available()
+        self._apply_missing_device_message()
         if self._camera_available:
             return True
         if show_status:
-            self.set_status("Missing device(s): Camera", "#FF6666")
+            self.set_status("Missing device: Camera", "#FF6666")
         return False
 
     def _apply_missing_device_message(self):
@@ -304,25 +308,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self.fingerprint_thread.activate()
         self.hiddenInput.setEnabled(True)
         self._focus_hidden_input()
-
-    def _poll_device_status(self):
-        camera_running = bool(
-            self.camera_handler
-            and self.camera_handler.camera_thread
-            and self.camera_handler.camera_thread.isRunning()
-        )
-        if camera_running:
-            self._camera_available = True
-        else:
-            now = time.monotonic()
-            should_probe = (
-                not self._camera_available
-                or (now - self._last_camera_probe_at) >= self._camera_probe_interval_sec
-            )
-            if should_probe:
-                self._camera_available = self._probe_camera_available()
-                self._last_camera_probe_at = now
-        self._apply_missing_device_message()
 
     def _on_fingerprint_device_availability_changed(self, available: bool):
         self._fingerprint_available = bool(available)
@@ -1055,8 +1040,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
         if hasattr(self, "connection_monitor"):
             self.connection_monitor.stop()
-        if hasattr(self, "device_status_timer"):
-            self.device_status_timer.stop()
         if hasattr(self, "sync_manager"):
             self.sync_manager.stop()
         if getattr(self, "face_thread", None) and self.face_thread.isRunning():

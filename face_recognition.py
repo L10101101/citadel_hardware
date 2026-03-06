@@ -29,7 +29,7 @@ VERIFY_SIM_THRESHOLD = float(
 IDENTIFY_SIM_THRESHOLD = float(
     os.environ.get(
         "FACE_IDENTIFY_SIM_THRESHOLD",
-        str(_app_cfg.get("face_identify_sim_threshold", 0.70)),
+        str(_app_cfg.get("face_identify_sim_threshold", 0.75)),
     )
 )
 
