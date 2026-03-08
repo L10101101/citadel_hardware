@@ -12,16 +12,16 @@ from utils import resource_path
 
 logger = logging.getLogger(__name__)
 
-CONF_THRESHOLD = 0.8
+CONF_THRESHOLD = 0.75
 STILL_DURATION = 2.0
 
 CAMERA_INDEX = 0
 CAMERA_WIDTH = 3840
 CAMERA_HEIGHT = 2160
-FPS = 12
+FPS = 30
 
-MIN_FACE_SIZE = 120
-MIN_BRIGHTNESS = 45.0
+MIN_FACE_SIZE = 500
+MIN_BRIGHTNESS = 100.0
 MAX_BRIGHTNESS = 220.0
 MIN_SHARPNESS = 70.0
 CLOUD_ENROLL_MAX_RETRIES = 3
@@ -50,14 +50,62 @@ det_output = det_model.output(0)
 rec_output = rec_model.output(0)
 
 
+def _open_capture_with_fallback(index: int):
+    previous_level = None
+    try:
+        if hasattr(cv2, "getLogLevel") and hasattr(cv2, "setLogLevel"):
+            previous_level = cv2.getLogLevel()
+            silent_level = getattr(cv2, "LOG_LEVEL_SILENT", 0)
+            cv2.setLogLevel(silent_level)
+    except Exception:
+        previous_level = None
+
+    backends = []
+    if hasattr(cv2, "CAP_DSHOW"):
+        backends.append(cv2.CAP_DSHOW)
+    if hasattr(cv2, "CAP_MSMF"):
+        backends.append(cv2.CAP_MSMF)
+    if hasattr(cv2, "CAP_ANY"):
+        backends.append(cv2.CAP_ANY)
+
+    tried = set()
+    try:
+        for backend in backends:
+            if backend in tried:
+                continue
+            tried.add(backend)
+            cap = cv2.VideoCapture(index, backend)
+            if cap.isOpened():
+                return cap
+            try:
+                cap.release()
+            except Exception:
+                pass
+        return cv2.VideoCapture(index)
+    finally:
+        try:
+            if previous_level is not None and hasattr(cv2, "setLogLevel"):
+                cv2.setLogLevel(previous_level)
+        except Exception:
+            pass
+
+
 def open_camera():
-    cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+    cap = _open_capture_with_fallback(CAMERA_INDEX)
     if not cap.isOpened():
         raise RuntimeError(f"Cannot open {CAMERA_INDEX}")
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, FPS)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+    try:
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    except Exception:
+        pass
+    try:
+        cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+    except Exception:
+        pass
     try:
         cap.set(cv2.CAP_PROP_AUTO_WB, 1)
     except Exception:
@@ -222,4 +270,3 @@ def save_to_db(student_no, emb):
     else:
         logger.warning("Student not found in local DB while saving face embedding: %s", student_no)
         raise ValueError(f"{student_no} Not Found")
-

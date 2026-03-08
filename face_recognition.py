@@ -13,9 +13,9 @@ from utils import resource_path
 
 logger = logging.getLogger(__name__)
 
-PROCESS_WIDTH, PROCESS_HEIGHT = 960, 540
-CONF_THRESHOLD = 0.75
-SIM_THRESHOLD = 0.75
+RECOG_DETECT_SIZE = int(os.environ.get("FACE_RECOG_DETECT_SIZE", "1280"))
+CONF_THRESHOLD = 0.60
+SIM_THRESHOLD = 0.60
 
 _app_cfg = get_app_config()
 
@@ -29,11 +29,20 @@ VERIFY_SIM_THRESHOLD = float(
 IDENTIFY_SIM_THRESHOLD = float(
     os.environ.get(
         "FACE_IDENTIFY_SIM_THRESHOLD",
-        str(_app_cfg.get("face_identify_sim_threshold", 0.75)),
+        str(_app_cfg.get("face_identify_sim_threshold", 0.60)),
     )
 )
 
-LIVENESS_REAL_THRESHOLD = 0.85
+LIVENESS_REAL_THRESHOLD = float(os.environ.get("FACE_LIVENESS_REAL_THRESHOLD", "0.70"))
+LIVENESS_DIFF_THRESHOLD = float(os.environ.get("FACE_LIVENESS_DIFF_THRESHOLD", "0.20"))
+LIVENESS_MAX_SPOOF_PROB = float(os.environ.get("FACE_LIVENESS_MAX_SPOOF_PROB", "0.30"))
+LIVENESS_MIN_STREAK = max(1, int(os.environ.get("FACE_LIVENESS_MIN_STREAK", "2")))
+LIVENESS_MIN_DURATION_SEC = float(os.environ.get("FACE_LIVENESS_MIN_DURATION_SEC", "0.4"))
+LIVENESS_MAX_GAP_SEC = float(os.environ.get("FACE_LIVENESS_MAX_GAP_SEC", "0.7"))
+LIVENESS_MIN_MOVEMENT_PX = float(os.environ.get("FACE_LIVENESS_MIN_MOVEMENT_PX", "1.5"))
+LIVENESS_REQUIRE_HEAD_TURN = os.environ.get("FACE_LIVENESS_REQUIRE_HEAD_TURN", "1") == "1"
+LIVENESS_MIN_TURN_SHIFT = float(os.environ.get("FACE_LIVENESS_MIN_TURN_SHIFT", "0.04"))
+LIVENESS_ENABLED = os.environ.get("FACE_LIVENESS_ENABLED", "1") == "1"
 MIN_REC_FACE_SIZE = 90
 MIN_REC_BRIGHTNESS = 35.0
 MAX_REC_BRIGHTNESS = 230.0
@@ -80,6 +89,7 @@ _gallery_student_nos = None
 _gallery_loaded_at = 0.0
 _fernet_instance = None
 _perf_counter = 0
+_liveness_sessions = {}
 
 
 def _similarity_threshold(mode: str = "verify") -> float:
@@ -189,11 +199,12 @@ def load_gallery(force_reload=False):
 
 
 def reset_models():
-    global _det_model, _rec_model, _spoof_model, _gallery_cache, _gallery_embeddings, _gallery_student_nos, _gallery_loaded_at
+    global _det_model, _rec_model, _spoof_model, _gallery_cache, _gallery_embeddings, _gallery_student_nos, _gallery_loaded_at, _liveness_sessions
     _gallery_cache = None
     _gallery_embeddings = None
     _gallery_student_nos = None
     _gallery_loaded_at = 0.0
+    _liveness_sessions = {}
     try:
         _det_model = _load_model(DET_MODEL)
         _rec_model = _load_model(REC_MODEL)
@@ -217,6 +228,16 @@ def _normalize_lighting(face_crop):
     l = clahe.apply(l)
     lab = cv2.merge([l, a, b])
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
+def _get_center_square(frame):
+    h, w = frame.shape[:2]
+    side = min(h, w)
+    off_x = (w - side) // 2
+    off_y = (h - side) // 2
+    square = frame[off_y:off_y + side, off_x:off_x + side]
+    return square, off_x, off_y
+
 
 def _face_quality_check(face_crop):
     if face_crop is None or face_crop.size == 0:
@@ -265,23 +286,96 @@ def _is_live_face(face_crop):
             scores = exps / (np.sum(exps) + 1e-9)
         real_prob = float(scores[0])
         spoof_prob = float(scores[1])
-        return real_prob >= LIVENESS_REAL_THRESHOLD and real_prob > spoof_prob
+        return (
+            real_prob >= LIVENESS_REAL_THRESHOLD
+            and (real_prob - spoof_prob) >= LIVENESS_DIFF_THRESHOLD
+            and real_prob > spoof_prob
+            and spoof_prob <= LIVENESS_MAX_SPOOF_PROB
+        )
     except Exception:
         return False
+
+
+def _bbox_center(box):
+    x1, y1, x2, y2 = box
+    return ((x1 + x2) * 0.5, (y1 + y2) * 0.5)
+
+
+def _update_liveness_gate(identity_key: str, box, is_live_now: bool):
+    now = time.monotonic()
+    state = _liveness_sessions.get(identity_key)
+    if state is None:
+        state = {
+            "streak": 0,
+            "first_live": 0.0,
+            "last_seen": 0.0,
+            "base_center": None,
+            "max_movement": 0.0,
+            "max_turn_shift": 0.0,
+        }
+        _liveness_sessions[identity_key] = state
+
+    if (now - state["last_seen"]) > LIVENESS_MAX_GAP_SEC:
+        state["streak"] = 0
+        state["first_live"] = 0.0
+        state["base_center"] = None
+        state["max_movement"] = 0.0
+        state["max_turn_shift"] = 0.0
+    state["last_seen"] = now
+
+    if not is_live_now:
+        state["streak"] = 0
+        state["first_live"] = 0.0
+        state["base_center"] = None
+        state["max_movement"] = 0.0
+        state["max_turn_shift"] = 0.0
+        return False, "Checking liveness..."
+
+    cx, cy = _bbox_center(box)
+    if state["streak"] == 0:
+        state["streak"] = 1
+        state["first_live"] = now
+        state["base_center"] = (cx, cy)
+        state["max_movement"] = 0.0
+        state["max_turn_shift"] = 0.0
+        return False, "Checking liveness..."
+
+    state["streak"] += 1
+    bx, by = state["base_center"]
+    movement = float(np.hypot(cx - bx, cy - by))
+    if movement > state["max_movement"]:
+        state["max_movement"] = movement
+    face_w = max(1.0, float(box[2] - box[0]))
+    turn_shift = abs(cx - bx) / face_w
+    if turn_shift > state["max_turn_shift"]:
+        state["max_turn_shift"] = turn_shift
+
+    duration_ok = (now - state["first_live"]) >= LIVENESS_MIN_DURATION_SEC
+    streak_ok = state["streak"] >= LIVENESS_MIN_STREAK
+    motion_ok = state["max_movement"] >= LIVENESS_MIN_MOVEMENT_PX
+    turn_ok = (not LIVENESS_REQUIRE_HEAD_TURN) or (state["max_turn_shift"] >= LIVENESS_MIN_TURN_SHIFT)
+    if not duration_ok or not streak_ok:
+        return False, "Checking liveness..."
+    if not motion_ok:
+        return False, "Move slightly"
+    if not turn_ok:
+        return False, "Turn head slightly left or right"
+    return True, None
 
 
 def verify_face(school_id, frame, gallery, return_box=False):
     global _perf_counter
     if not _det_model or not _rec_model:
         return False, "Recognition model unavailable", None
-    if not _spoof_model:
+    if LIVENESS_ENABLED and not _spoof_model:
         return False, "Liveness model unavailable", None
     if school_id not in gallery:
         return False, "No Facial Data", None
     perf_enabled = PERF_LOG_EVERY > 0
     if perf_enabled:
         t0 = cv2.getTickCount()
-    frame_proc = cv2.resize(frame, (PROCESS_WIDTH, PROCESS_HEIGHT))
+    frame_square, off_x, off_y = _get_center_square(frame)
+    frame_proc = cv2.resize(frame_square, (RECOG_DETECT_SIZE, RECOG_DETECT_SIZE))
     blob = preprocess(frame_proc, _det_h, _det_w)
     det_req = _det_model.create_infer_request()
     det_req.infer({_det_model.input(0).any_name: blob})
@@ -310,9 +404,14 @@ def verify_face(school_id, frame, gallery, return_box=False):
         key=lambda f: f[0] * ((f[3] - f[1]) * (f[4] - f[2]))
     )
 
-    scale_x = frame.shape[1] / PROCESS_WIDTH
-    scale_y = frame.shape[0] / PROCESS_HEIGHT
-    x1, y1, x2, y2 = map(int, [xmin * scale_x, ymin * scale_y, xmax * scale_x, ymax * scale_y])
+    scale_x = frame_square.shape[1] / RECOG_DETECT_SIZE
+    scale_y = frame_square.shape[0] / RECOG_DETECT_SIZE
+    x1s, y1s, x2s, y2s = map(int, [xmin * scale_x, ymin * scale_y, xmax * scale_x, ymax * scale_y])
+    x1s, y1s = max(0, x1s), max(0, y1s)
+    x2s, y2s = min(frame_square.shape[1], x2s), min(frame_square.shape[0], y2s)
+
+    x1, y1 = x1s + off_x, y1s + off_y
+    x2, y2 = x2s + off_x, y2s + off_y
     x1, y1 = max(0, x1), max(0, y1)
     x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
 
@@ -322,8 +421,11 @@ def verify_face(school_id, frame, gallery, return_box=False):
     quality_ok, quality_msg = _face_quality_check(face_crop)
     if not quality_ok:
         return False, quality_msg or "Unrecognized", (x1, y1, x2, y2)
-    if not _is_live_face(face_crop):
-        return False, "Unrecognized", (x1, y1, x2, y2)
+    if LIVENESS_ENABLED:
+        live_now = _is_live_face(face_crop)
+        live_ok, live_msg = _update_liveness_gate(str(school_id), (x1, y1, x2, y2), live_now)
+        if not live_ok:
+            return False, (live_msg or "Liveness check failed"), (x1, y1, x2, y2)
     if perf_enabled:
         t_live = cv2.getTickCount()
 
@@ -371,6 +473,6 @@ def get_model_health():
         return False, f"Missing model files: {len(_model_file_errors)}"
     if not _det_model or not _rec_model:
         return False, "Recognition model unavailable"
-    if not _spoof_model:
+    if LIVENESS_ENABLED and not _spoof_model:
         return False, "Liveness model unavailable"
     return True, "ok"

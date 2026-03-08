@@ -14,6 +14,8 @@
         <file>assets/user.png</file>
         <file>assets/view.png</file>
         <file>assets/logo-enroll.png</file>
+        <file>assets/logo-enroll.ico</file>
+        <file>assets/logo.ico</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>fonts/Poppins-Black.ttf</file>

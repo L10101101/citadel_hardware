@@ -36,6 +36,11 @@ class CameraHandler:
         self._last_display_update_at = 0.0
         self._display_bgr = None
         self._display_info = None
+        self._overlay_box = None
+        self._overlay_ok = False
+        self._overlay_message = None
+        self._overlay_until = 0.0
+        self._overlay_hold_s = max(0.1, float(os.environ.get("FACE_OVERLAY_HOLD_S", "0.35")))
         self.camera_window = None
         self.camera_overlay_label = None
         self._init_inline_preview()
@@ -159,7 +164,9 @@ class CameraHandler:
                 "display_h": target_size,
                 "mirrored": True
             }
-            self.update_pixmap(display_bgr)
+            disp = self._display_bgr.copy()
+            disp = self._apply_overlay(disp)
+            self.update_pixmap(disp)
             self._last_display_update_at = now
 
         if self._can_launch_face_job():
@@ -186,10 +193,23 @@ class CameraHandler:
         )
         label.setPixmap(pixmap)
 
-    def draw_face_box(self, box, ok):
+    def draw_face_box(self, box, ok, message=None):
+        self._overlay_box = box
+        self._overlay_ok = bool(ok)
+        self._overlay_message = message
+        self._overlay_until = time.monotonic() + self._overlay_hold_s
         if self._display_info is None or self._display_bgr is None:
             return
-        x1, y1, x2, y2 = box
+        disp = self._display_bgr.copy()
+        disp = self._apply_overlay(disp)
+        self.update_pixmap(disp)
+
+    def _apply_overlay(self, disp):
+        if self._display_info is None:
+            return disp
+        if self._overlay_box is None or time.monotonic() > self._overlay_until:
+            return disp
+        x1, y1, x2, y2 = self._overlay_box
         info = self._display_info
         dx1 = max(0, min(info["crop_size"], x1 - info["x_start"]))
         dx2 = max(0, min(info["crop_size"], x2 - info["x_start"]))
@@ -201,13 +221,40 @@ class CameraHandler:
         dy1, dy2 = int(dy1 * sy), int(dy2 * sy)
         if info["mirrored"]:
             dx1, dx2 = info["display_w"] - dx2, info["display_w"] - dx1
-        disp = self._display_bgr.copy()
-        color = (0, 255, 0) if ok else (0, 0, 255)
+        color = (0, 255, 0) if self._overlay_ok else (0, 0, 255)
         thickness = max(2, int(round(info["display_w"] / 300)))
-        cv2.rectangle(disp, (dx1, dy1), (dx2, dy2), color, thickness)
-        self.update_pixmap(disp)
+        if x2 > x1 and y2 > y1:
+            cv2.rectangle(disp, (dx1, dy1), (dx2, dy2), color, thickness)
+        if self._overlay_message:
+            font_scale = max(0.55, info["display_w"] / 1100.0)
+            text_thickness = max(2, int(round(info["display_w"] / 360)))
+            (text_w, text_h), baseline = cv2.getTextSize(
+                self._overlay_message, cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_thickness
+            )
+            pad = max(8, int(round(info["display_w"] / 100)))
+            tx = max(pad, info["display_w"] - text_w - pad)
+            ty = max(text_h + pad, text_h + pad)
+            bg_x1 = max(0, tx - pad // 2)
+            bg_y1 = max(0, ty - text_h - pad // 2)
+            bg_x2 = min(info["display_w"], tx + text_w + pad // 2)
+            bg_y2 = min(info["display_h"], ty + baseline + pad // 2)
+            cv2.rectangle(disp, (bg_x1, bg_y1), (bg_x2, bg_y2), (0, 0, 0), -1)
+            cv2.putText(
+                disp,
+                self._overlay_message,
+                (tx, ty),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                font_scale,
+                (255, 255, 255),
+                text_thickness,
+                cv2.LINE_AA,
+            )
+        return disp
 
     def clear_camera_feed(self):
+        self._overlay_box = None
+        self._overlay_message = None
+        self._overlay_until = 0.0
         from utils import resource_path
         pixmap = QPixmap(resource_path("gui/assets/user.png"))
         label = self._target_label()

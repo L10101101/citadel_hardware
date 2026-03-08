@@ -4,9 +4,10 @@ import logging
 import json
 from urllib import error as urlerror
 from urllib import request as urlrequest
+from urllib import parse as urlparse
 
 from db_utils import get_connection
-from config_store import get_sms_app_config
+from config_store import get_sms_app_config, get_app_config
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,13 @@ def _post_json(url: str, payload: dict, headers: dict, timeout_sec: int):
 async def send_sms(guardian_number: str, student_name: str, action: str):
     try:
         cfg = get_sms_app_config()
+        app_cfg = get_app_config()
+        campus_name = (app_cfg.get("campus_name") or "").strip()
         endpoint_url = (cfg.get("endpoint_url") or "").strip()
+        if endpoint_url:
+            parsed = urlparse.urlparse(endpoint_url)
+            if parsed.scheme and parsed.netloc and parsed.path.strip("/") == "":
+                endpoint_url = urlparse.urlunparse(parsed._replace(path="/send"))
         if not endpoint_url:
             logger.debug("SMS app endpoint is not configured; SMS skipped.")
             return
@@ -33,9 +40,9 @@ async def send_sms(guardian_number: str, student_name: str, action: str):
         formatted_time = now.strftime("%I:%M %p")
         timestamp = now.strftime("%A, %B %d, %Y %I:%M %p")
         message = (
-            f"This is to inform you that your child, {student_name}, has {action} "
-            "the University of Caloocan City - Bagong Silang Campus.\n"
-            f"Student Name: {student_name}\n"
+            f"This is to inform you that {student_name} has {action} "
+            f"University of Caloocan City - {campus_name} campus.\n"
+            f"\n"
             f"Date: {formatted_date}\n"
             f"Time: {formatted_time}"
         )

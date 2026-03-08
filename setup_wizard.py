@@ -695,6 +695,11 @@ class SettingsDialog(QDialog):
         self.face_identify_threshold.setValue(float(self._app_existing.get("face_identify_sim_threshold", 0.70)))
         form.addRow("Identify threshold:", self.face_identify_threshold)
 
+        self.campus_name = QLineEdit()
+        self.campus_name.setText((self._app_existing.get("campus_name") or "").strip())
+        self.campus_name.setPlaceholderText("e.g. University of Caloocan City - Bagong Silang Campus")
+        form.addRow("Campus name:", self.campus_name)
+
         layout.addLayout(form)
         layout.addStretch()
         self.tabs.addTab(tab, "Application")
@@ -1011,14 +1016,17 @@ class SettingsDialog(QDialog):
             run_main_on_startup = bool(self.run_main_on_startup.isChecked())
             face_verify_threshold = float(self.face_verify_threshold.value())
             face_identify_threshold = float(self.face_identify_threshold.value())
+            campus_name = (self.campus_name.text() or "").strip()
         else:
             run_main_on_startup = bool(existing_app_cfg.get("run_main_on_startup", False))
             face_verify_threshold = float(existing_app_cfg.get("face_verify_sim_threshold", 0.75))
             face_identify_threshold = float(existing_app_cfg.get("face_identify_sim_threshold", 0.70))
+            campus_name = (existing_app_cfg.get("campus_name") or "").strip()
         app_cfg = {
             "run_main_on_startup": run_main_on_startup,
             "face_verify_sim_threshold": face_verify_threshold,
             "face_identify_sim_threshold": face_identify_threshold,
+            "campus_name": campus_name,
         }
 
         local_db = {

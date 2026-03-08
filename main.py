@@ -49,7 +49,6 @@ from utils import set_sync_manager
 from status_labels import (
     StatusLabelController,
     status_entry_logged,
-    status_unrecognized,
 )
 from app_logging import configure_logging
 
@@ -100,15 +99,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._face_metrics_fail = 0
         self._face_metrics_lockout_suppressed = 0
         self._face_metrics_fail_reasons = Counter()
-        self._face_specific_errors = {
-            "Too dark",
-            "Too bright",
-            "Too blurry",
-            "Face too small",
-            "No Face Detected",
-            "Invalid Crop",
-        }
-
         self._init_summary_display()
         self._init_slideshow()
         self.emergency_mode = EmergencyModeController(self)
@@ -270,11 +260,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
         else:
             self._camera_available = self._probe_camera_available()
         self._apply_missing_device_message()
-        if self._camera_available:
-            return True
-        if show_status:
-            self.set_status("Missing device: Camera", "#FF6666")
-        return False
+        # QR-only flow is allowed even when camera is unavailable.
+        return True
 
     def _apply_missing_device_message(self):
         if not hasattr(self, "label"):
@@ -288,10 +275,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         had_missing = self._had_missing_devices
         self._had_missing_devices = bool(missing)
         if missing:
-            if self.has_no_scan_devices_available():
-                if hasattr(self, "slideshow_idle_timer"):
-                    self.slideshow_idle_timer.stop()
-                self._stop_slideshow()
             text = f"Missing device(s): {', '.join(missing)}"
             self._last_missing_text = text
             self._set_header_label_text(text)
@@ -445,7 +428,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
 
         self.slideshow_idle_timer = QTimer()
         self.slideshow_idle_timer.setSingleShot(True)
-        self.slideshow_idle_timer.setInterval(15000)
+        self.slideshow_idle_timer.setInterval(20000)
         self.slideshow_idle_timer.timeout.connect(self._start_slideshow)
 
         self.slideshow_cycle_timer = QTimer()
@@ -465,10 +448,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         self._stop_slideshow()
         if getattr(self, "emergency_mode", None) and self.emergency_mode.active:
             return
-        if self.has_no_scan_devices_available():
-            if hasattr(self, "slideshow_idle_timer"):
-                self.slideshow_idle_timer.stop()
-            return
         if self._slideshow_images:
             self.slideshow_idle_timer.start()
 
@@ -478,8 +457,6 @@ class MainWindow(QMainWindow, Ui_Citadel):
         if getattr(self, "verification_active", False) or getattr(self, "_showing_student_details", False):
             if hasattr(self, "slideshow_idle_timer"):
                 self.slideshow_idle_timer.start()
-            return
-        if self.has_no_scan_devices_available():
             return
         if not self._slideshow_images:
             return
@@ -754,16 +731,13 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.camera_handler.close_camera_window()
             self.face_timeout_timer.stop()
             self.reset_verification_state()
-            self.set_status(info, "#FF6666")
             self.schedule_reset_info(7000)
             return
         now = time.monotonic()
         if self._face_lockout.in_lockout(now):
             self._face_metrics_lockout_suppressed += 1
-            if self._face_lockout.should_emit_notice(now):
-                self.set_status("Hold still and center your face", "#FFA500")
             if box:
-                self.camera_handler.draw_face_box(box, False)
+                self.camera_handler.draw_face_box(box, False, "Hold still and center your face")
             return
         self._record_face_result_metric(ok, info)
         self._face_vote_window.append(bool(ok))
@@ -771,9 +745,8 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self._face_accept_cooldown_until = now + 0.8
             if self._face_lockout.register_result(False, now):
                 self._face_vote_window.clear()
-                self.set_status("Hold still and center your face", "#FFA500")
                 if box:
-                    self.camera_handler.draw_face_box(box, False)
+                    self.camera_handler.draw_face_box(box, False, "Hold still and center your face")
                 return
         if ok:
             self._face_lockout.register_result(True, now)
@@ -785,7 +758,7 @@ class MainWindow(QMainWindow, Ui_Citadel):
             )
             if not enough_time or in_cooldown or not enough_votes:
                 if box:
-                    self.camera_handler.draw_face_box(box, False)
+                    self.camera_handler.draw_face_box(box, False, "Checking liveness...")
                 return
             self.camera_handler.stop_camera()
             self.camera_handler.close_camera_window()
@@ -793,12 +766,12 @@ class MainWindow(QMainWindow, Ui_Citadel):
             self.qr_verified_success(self.current_qr, info)
             self.current_qr = None
         else:
-            if isinstance(info, str) and info in self._face_specific_errors:
-                self.set_status(info, "#FF6666")
-            else:
-                status_unrecognized(self.set_status)
+            pass
         if box:
-            self.camera_handler.draw_face_box(box, ok)
+            overlay_msg = None
+            if not ok and isinstance(info, str):
+                overlay_msg = info
+            self.camera_handler.draw_face_box(box, ok, overlay_msg)
 
     def _record_face_result_metric(self, ok: bool, info) -> None:
         if self._face_metrics_log_every <= 0:

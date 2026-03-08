@@ -173,6 +173,27 @@ class VerificationHandler:
             self._schedule_reset_info()
             return
 
+        if not getattr(self.main, "_camera_available", True):
+            self.main.hiddenInput.setEnabled(False)
+            self.main.verification_active = True
+            success = log_entry(
+                qr_value,
+                method_id=3,
+                set_status=self.main.set_status
+            )
+            if success:
+                self._update_ui(qr_value, "Entry Logged", verification_mode="qr_only")
+                status_entry_logged(self.main.set_status)
+                self.main.refresh_monitoring_summary()
+                notify_parent_task(qr_value)
+                notify_parent_sms_task(qr_value)
+                self.main.schedule_reset_info(8000)
+            else:
+                self._schedule_reset_info()
+            self.main.verification_active = False
+            self._enable_qr_input()
+            return
+
         self.main.hiddenInput.setEnabled(False)
         self.main.verification_active = True
         self.main.current_qr = qr_value
@@ -194,7 +215,7 @@ class VerificationHandler:
         status_qr_verified(self.main.set_status)
         self.main.camera_handler.open_camera_window()
         self.main.camera_handler.start_camera()
-        self.main.face_timeout_timer.start(10000)
+        self.main.face_timeout_timer.start(7000)
 
     def on_face_timeout(self):
         if getattr(self.main, "emergency_mode", None) and self.main.emergency_mode.active:
